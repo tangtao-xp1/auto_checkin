@@ -210,8 +210,6 @@ if __name__ == "__main__":
         # 3. 格式化结果
         # final_report = format_results_for_notification(all_results)
         notification_title, final_report = format_results_for_serverchan(all_results)
-        print(notification_title)
-        print(final_report)
 
     # 4. 发送统一通知
     print("=== 开始发送统一通知 ===")
