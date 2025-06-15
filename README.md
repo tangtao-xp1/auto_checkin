@@ -36,8 +36,8 @@
 | TG_BOT_TOKEN  |  否  |  telegrame bot密钥，不新建则不会使用tg推送消息  |
 | TG_CHAT_ID  |  否  |  telegrame chat id，不新建则不会使用tg推送消息  |
 
-3. 到`Actions`中创建一个workflow，运行一次，以后每天项目都会自动运行
-4. 最后，可以到Run sign查看签到情况，同时也会也会将签到详情推送到Sever酱/pushplus/telegram
+3. 到`Actions`中创建一个workflow，运行一次，以后每天项目都会在北京时间6点自动运行
+4. 最后，可以到Actions的workflow日志中的Run sign部分查看签到情况，同时也可以推送到Sever酱/pushplus/telegram查看签到详情
 
 ### 推送说明
 1. 该脚本可选择采用<a href='https://sct.ftqq.com/'>Server酱</a>或<a href = 'https://www.pushplus.plus/'>pushplus</a>或telegrame的推送方式
