@@ -1,0 +1,55 @@
+name: "Airport Checkin"
+
+on:
+  schedule:
+    - cron: "0 22 * * *"  # scheduled at 06:00 (UTC+8) everyday
+  workflow_dispatch:
+
+env:
+  RUN_ENV: 'prod'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          # ref: master
+
+      - name: Set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'  # 设置 Python 版本，建议使用稳定版本
+
+      - name: Random sleep
+        if: github.event_name == 'schedule'
+        run: sleep $(shuf -i 10-100 -n 1)
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # 注意代码库需要requirements.txt
+          pip install -r requirements.txt
+      - name: Run sign
+        env:
+          # 需要添加Action Secrets
+          # 添加Action Secrets的路径如下：Settings -> Security -> Secrets and variables -> Actions -> New repository secrets
+          # glados配置，用||隔开
+          GR_COOKIE: ${{ secrets.GR_COOKIE }}
+          GLADOS_BASE_URL: ${{ secrets.GLADOS_BASE_URL }}
+          # ikuuu配置，用||隔开
+          EMAIL: ${{ secrets.EMAIL }}
+          PASSWD: ${{ secrets.PASSWD }}
+          IKUUU_BASE_URL: ${{ secrets.IKUUU_BASE_URL }}
+          # 通知配置
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }} # telgram推送，选填
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }} # telgram推送，选填
+          SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }} # serverchan推送，选填
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }} # pushplus推送，选填
+          
+        run: |
+          python3 ./main.py
