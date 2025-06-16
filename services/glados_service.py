@@ -28,9 +28,21 @@ class GLaDOSService(CheckinService):
         
         configs = []
         for cookie in cookies:
+            # 查找koa:sess.sig=的位置
+            sig_prefix = "koa:sess.sig="
+            sig_index = cookie.find(sig_prefix)
+            
+            if sig_index != -1:
+                # 找到了koa:sess.sig=，提取后面的10个字符
+                start_pos = sig_index + len(sig_prefix)
+                account_id = cookie[start_pos:start_pos + 10] + '...'
+            else:
+                # 如果没找到koa:sess.sig=，回退到原来的方法（前10个字符）
+                account_id = cookie[:10] + '...'
+    
             config = {
                 'cookie': cookie,
-                'account_id': cookie[:10] + '...',  # 使用cookie前10字符作为账号标识
+                'account_id': account_id,
                 'base_url': self.base_url
             }
             configs.append(config)
@@ -63,7 +75,7 @@ class GLaDOSService(CheckinService):
         
         checkin_data = response.json()
         code = checkin_data.get('code', -1)
-        print(f"      code = {code}{'-成功' if code == 1 else '-失败'}")
+        print(f"      code = {code}{'-成功' if code == 0 else '-失败'}")
         message = checkin_data.get('message', '未知结果')
         success = (code == 0)
         
