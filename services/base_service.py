@@ -119,7 +119,7 @@ class CheckinService(ABC):
             checkin_result = self.do_checkin(account_config)
             checkin_success = checkin_result.get('success', False)
             checkin_message = checkin_result.get('message', '签到完成')
-            print(f"      签到结果: {checkin_message}")  # 【新增】打印签到消息
+            print(f"      签到结果: {checkin_message}")
             
             # 步骤3: 获取用量信息
             print(f"    * 正在获取用量信息...")
@@ -138,7 +138,7 @@ class CheckinService(ABC):
             return CheckinResult(
                 service_name=self.service_name,
                 account_id=account_id,
-                success=True,
+                success=checkin_success,
                 message=checkin_result.get('message', '签到完成'),
                 checkin_time=checkin_time,
                 data=result_data
