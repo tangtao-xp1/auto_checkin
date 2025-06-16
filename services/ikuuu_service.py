@@ -88,9 +88,9 @@ class IkuuuService(CheckinService):
         response = self.make_request('POST', checkin_url)
         checkin_data = response.json()
         ret = checkin_data.get('ret', -1)
-        print(f"      ret = {ret}{'-成功' if ret == 0 else '-失败'}")
+        print(f"      ret = {ret}{'-成功' if ret == 1 else '-失败'}")
         message = checkin_data.get('msg', '签到失败')
-        success = (ret == 0)
+        success = (ret == 1)
         return {
             'success': success,
             'message': message,
@@ -98,8 +98,7 @@ class IkuuuService(CheckinService):
         }
 
     def get_usage_info(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
-        """获取iKuuu用量信息"""
-        # 【新增】增加异常处理
+        """获取iKuuu用量信息"""        
         try:
             if not account_config.get('logged_in'):
                 raise Exception("账号未登录，无法获取用量信息")
@@ -117,8 +116,7 @@ class IkuuuService(CheckinService):
             return {
                 'remaining_traffic': remaining_traffic,
                 'traffic_unit': 'GB'
-            }
-        # 【新增】异常处理，失败时返回None
+            }        
         except Exception as e:
             print(f"      获取用量信息异常: {str(e)}")
             return None
