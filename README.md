@@ -1,6 +1,6 @@
-# 机场自动签到服务
+# 自动签到服务
 
-一个基于Python的多平台自动签到工具，支持GLaDOS和iKuuu等服务的自动签到。
+一个基于Python的多平台自动签到工具，目前支持GLaDOS和iKuuu等机场服务的自动签到。
 
 ## 🚀 功能特性
 
@@ -25,7 +25,7 @@
 
 | 参数   |  是否必需  | 内容  | 
 | ------------ |  ------------ |  ------------ |
-| GR_COOKIE  |  否  |  GLaDOS的登录cookie，支持多账号，每个账号的cookie用`&#124;&#124;`隔开  |
+| GR_COOKIE  |  否  |  GLaDOS的登录cookie，支持多账号，每个账号的cookie用两个竖线隔开  |
 | GLADOS_BASE_URL  |  否  |  GLaDOS的网址，默认填https://glados.one  |
 | EMAIL  |  否  |  ikuuu的登录账号邮箱，支持多账号，用两个竖线隔开  |
 | PASSWD |  否  |  ikuuu的登录账号密码，支持多账号，用两个竖线隔开  |
@@ -49,10 +49,10 @@
 
 ```bash
 # GLaDOS Cookie（多个账号用||分隔）
-export GR_COOKIE="koa:sess=xxxx; koa:sess.sig=xxx||koa:sess=xxxx; koa:sess.sig=xxx"
+GR_COOKIE="koa:sess=xxxx; koa:sess.sig=xxx||koa:sess=xxxx; koa:sess.sig=xxx"
 
 # GLaDOS基础URL（可选，默认为https://glados.one）
-export GLADOS_BASE_URL="https://glados.one"
+GLADOS_BASE_URL="https://glados.one"
 ```
 
 ### iKuuu变量配置说明
@@ -68,10 +68,10 @@ PASSWD="password1||password2"
 IKUUU_BASE_URL="https://ikuuu.one"
 ```
 
-### 通用配置
+### 通用配置（可选）
 
 ```bash
-# User-Agent（可选）
+# User-Agent
 USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
 ```
 
