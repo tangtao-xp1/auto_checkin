@@ -114,6 +114,7 @@ def format_results_for_serverchan(all_results: List[CheckinResult]) -> Tuple[str
     # 计算各列最大宽度
     max_service_len = max(len(r.service_name) for r in all_results)
     max_account_len = max(10, max(len(r.account_id) for r in all_results))  # 至少10字符宽度
+    max_message_len = max(15, max(len(r.message) for r in all_results))  # 至少15字符宽度
 
     lines = []
     for result in all_results:
@@ -134,7 +135,8 @@ def format_results_for_serverchan(all_results: List[CheckinResult]) -> Tuple[str
         # 对齐格式化
         line = (f"{result.service_name.ljust(max_service_len)} "
                 f"{account.ljust(max_account_len)} "
-                f"{status} {data}")
+                f"{status} {data} "
+                f"{result.message.ljust(max_message_len)}")
         lines.append(line)
 
     # 统计信息
