@@ -105,16 +105,16 @@ def format_results_for_serverchan(all_results: List[CheckinResult]) -> Tuple[str
     """
     极简对齐版签到结果格式化
     返回: (title, final_report)
-    title格式: "签到 总数/成功/失败"
+    title格式: "自动签到 总数/成功/失败"
     正文使用 ✓ 和 ✗ 符号
     """
     if not all_results:
         return "自动签到 0/0/0", "无签到任务"
 
     # 计算各列最大宽度
-    max_service_len = max(len(r.service_name) for r in all_results)
-    max_account_len = max(10, max(len(r.account_id) for r in all_results))  # 至少10字符宽度
-    max_message_len = max(15, max(len(r.message) for r in all_results))  # 至少15字符宽度
+    max_service_len = min(10, max(len(r.service_name) for r in all_results))  # 限制最大10字符
+    max_account_len = min(10, max(len(r.account_id) for r in all_results))  # 限制最大10字符
+    max_message_len = min(15, max(len(r.message) for r in all_results))  # 限制最大15字符
 
     lines = []
     for result in all_results:
@@ -123,20 +123,24 @@ def format_results_for_serverchan(all_results: List[CheckinResult]) -> Tuple[str
         if result.service_name == "GLaDOS":
             account = result.account_id[:10]  # GLaDOS只显示前10字符
 
+        # 处理service_name和message的长度限制
+        service_name = (result.service_name[:10] + "..") if len(result.service_name) > 10 else result.service_name
+        message = (result.message[:15] + "..") if len(result.message) > 15 else result.message
+
         # 构建状态和数据部分 - 使用 ✓ 和 ✗ 符号
         status = "✓" if result.success else "✗"
         data = ""
-        if result.success and result.data:
+        if result.data:
             if result.service_name == "GLaDOS" and 'left_days' in result.data:
                 data = f"{result.data['left_days']}天\n"
             elif result.service_name == "iKuuu" and 'remaining_traffic' in result.data:
                 data = f"{result.data['remaining_traffic']}G\n"
 
         # 对齐格式化
-        line = (f"{result.service_name.ljust(max_service_len)} "
+        line = (f"\n{service_name.ljust(max_service_len)} "
                 f"{account.ljust(max_account_len)} "
                 f"{status} {data} "
-                f"{result.message.ljust(max_message_len)}")
+                f"{message.ljust(max_message_len)}")
         lines.append(line)
 
     # 统计信息
