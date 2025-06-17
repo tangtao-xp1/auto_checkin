@@ -12,7 +12,7 @@ class GLaDOSService(CheckinService):
     _retry_config = {
         'enabled': True,  # 启用重试
         'max_retries': 3,  # 重试次数
-        'delay': 5  # 重试间隔，单位：秒    
+        'delay': 10  # 重试间隔，单位：秒
     }
 
     def __init__(self):
@@ -65,10 +65,10 @@ class GLaDOSService(CheckinService):
         if not isinstance(result, dict):
             return False
             
-        code = result.get('code')
+        success = result.get('success', False)
         message = result.get('message', '')
         
-        return code == 1 and "Checkin Repeats" in message
+        return success is False and "Checkin Repeats" in message
 
     def login(self, account_config: Dict[str, Any]) -> bool:
         """GLaDOS基于cookie，无需登录步骤"""
@@ -95,13 +95,13 @@ class GLaDOSService(CheckinService):
         )
         
         checkin_data = response.json()
-        code = checkin_data.get('code', -1)
-        print(f"      code = {code}{'-成功' if code == 0 else '-失败'}")
+        code = checkin_data.get('code', -1)        
         message = checkin_data.get('message', '未知结果')
-        success = (code == 0)
+        print(f"      code = {code}{'-成功' if code == 0 else '-失败'}")
+        print(f"      message = {message}")
         
         return {
-            'success': success,
+            'success': (code == 0),
             'message': message,
             'checkin_response': checkin_data
         }

@@ -138,6 +138,7 @@ class CheckinService(ABC):
             
             # 步骤2: 签到
             print(f"    * 正在执行签到...")
+            checkin_result = None
             retries = 0
             while retries < retry_config['max_retries']:
                 try:
@@ -145,15 +146,10 @@ class CheckinService(ABC):
                     
                     # 如果已经签到过，直接返回结果
                     if self._is_already_checked_in(checkin_result):
-                        print(f"      已签到过，无需重试")
-                        return CheckinResult(
-                            service_name=self.service_name,
-                            account_id=account_id,
-                            success=True,  # 已签到过也算成功
-                            message=checkin_result.get('message', '已签到过'),
-                            checkin_time=checkin_time,
-                            data=checkin_result
-                        )
+                        print(f"      已签到过，无需重试，视为处理成功")
+                        checkin_result['success'] = True
+                        checkin_result['message'] = checkin_result.get('message', '已签到过')
+                        break
                     
                     # 如果签到成功，直接返回
                     if checkin_result.get('success', False):
@@ -174,7 +170,12 @@ class CheckinService(ABC):
                         print(f"      发生异常: {str(e)}，第 {retries} 次重试，等待 {retry_config['delay']} 秒...")
                         time.sleep(retry_config['delay'])
                     else:
-                        raise
+                        print(f"      达到最大重试次数，签到失败: {str(e)}")
+                        checkin_result = {
+                            'success': False,
+                            'message': f'签到失败: {str(e)}'
+                        }
+                        break
             
             # 步骤3: 获取用量信息
             print(f"    * 正在获取用量信息...")
@@ -187,14 +188,14 @@ class CheckinService(ABC):
                 usage_info = {'usage_error': f'获取用量信息失败: {str(e)}'}
             
             # 合并数据
-            result_data = {**checkin_result, **usage_info}
+            result_data = {**(checkin_result or {}), **usage_info}
             
             print(f"    * 账号 {self._desensitize_account_id(account_id)} 处理完成")
             return CheckinResult(
                 service_name=self.service_name,
                 account_id=account_id,
-                success=checkin_result.get('success', False),
-                message=checkin_result.get('message', '签到完成'),
+                success=checkin_result.get('success', False) if checkin_result else False,
+                message=checkin_result.get('message', '签到完成') if checkin_result else '签到失败',
                 checkin_time=checkin_time,
                 data=result_data
             )

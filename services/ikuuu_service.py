@@ -12,7 +12,7 @@ class IkuuuService(CheckinService):
     # 禁用重试
     _retry_config = {
         'enabled': True,  # 启用重试   
-        'max_retries': 3,  # 重试次数
+        'max_retries': 2,  # 重试次数
         'delay': 5  # 重试间隔，单位：秒
     }
 
@@ -62,11 +62,11 @@ class IkuuuService(CheckinService):
         """
         if not isinstance(result, dict):
             return False
-            
-        ret = result.get('ret')
-        message = result.get('msg', '')
+
+        success = result.get('success', False)
+        message = result.get('message', '')
         
-        return ret == 0 and "已经签到过了" in message
+        return success == 0 and "已经签到过了" in message
 
     def login(self, account_config: Dict[str, Any]) -> bool:
         """登录iKuuu账号"""
@@ -90,13 +90,15 @@ class IkuuuService(CheckinService):
         ret = result.get('ret', -1)
         login_msg = result.get('msg', '未知错误')
 
-        if ret == 1:
-            print(f"      ret = 1-成功")
+        is_success = ret == 1
+
+        print(f"      ret = {ret}-{'成功' if is_success else '失败'}")
+        print(f"      msg = {login_msg}")
+
+        if is_success:
             account_config['logged_in'] = True
-            return True
-        else:
-            print(f"      ret = {ret}-失败")
-            return False
+        
+        return is_success
 
     def do_checkin(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
         """执行iKuuu签到"""
@@ -109,11 +111,11 @@ class IkuuuService(CheckinService):
         response = self.make_request('POST', checkin_url)
         checkin_data = response.json()
         ret = checkin_data.get('ret', -1)
-        print(f"      ret = {ret}{'-成功' if ret == 1 else '-失败'}")
         message = checkin_data.get('msg', '签到失败')
-        success = (ret == 1)
+        print(f"      ret = {ret}{'-成功' if ret == 1 else '-失败'}")
+        print(f"      msg = {message}")
         return {
-            'success': success,
+            'success': (ret == 1),
             'message': message,
             'checkin_response': checkin_data
         }
