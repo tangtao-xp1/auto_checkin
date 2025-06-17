@@ -1,6 +1,7 @@
 # services/base_service.py
 import os
 import requests
+import time
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 from datetime import datetime
@@ -30,8 +31,28 @@ class CheckinResult:
 class CheckinService(ABC):
     """
     签到服务的抽象基类。
-    所有具体的签到服务都应继承此类，并实现其所有抽象方法。
     """
+    # 默认重试配置
+    _retry_config = {
+        'enabled': False,  # 默认不启用重试
+        'max_retries': 3,  # 重试次数
+        'delay': 5  # 重试间隔，单位：秒
+    }
+
+    @classmethod
+    def get_retry_config(cls) -> Dict[str, Any]:
+        """
+        获取重试配置
+        子类可以重写此方法来自定义重试配置
+        """
+        return cls._retry_config
+
+    def _is_already_checked_in(self, result: Dict[str, Any]) -> bool:
+        """
+        判断是否已经签到过
+        需要子类根据具体服务实现此方法
+        """
+        raise NotImplementedError("子类必须实现此方法")
 
     def __init__(self):
         self.session = requests.Session()
@@ -98,6 +119,7 @@ class CheckinService(ABC):
         """处理单个账号的完整流程"""
         account_id = account_config.get('account_id', '未知账号')
         checkin_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        retry_config = self.get_retry_config()
         
         try:
             print(f"  - 开始处理账号: {self._desensitize_account_id(account_id)}")
@@ -116,10 +138,43 @@ class CheckinService(ABC):
             
             # 步骤2: 签到
             print(f"    * 正在执行签到...")
-            checkin_result = self.do_checkin(account_config)
-            checkin_success = checkin_result.get('success', False)
-            checkin_message = checkin_result.get('message', '签到完成')
-            print(f"      签到结果: {checkin_message}")
+            retries = 0
+            while retries < retry_config['max_retries']:
+                try:
+                    checkin_result = self.do_checkin(account_config)
+                    
+                    # 如果已经签到过，直接返回结果
+                    if self._is_already_checked_in(checkin_result):
+                        print(f"      已签到过，无需重试")
+                        return CheckinResult(
+                            service_name=self.service_name,
+                            account_id=account_id,
+                            success=True,  # 已签到过也算成功
+                            message=checkin_result.get('message', '已签到过'),
+                            checkin_time=checkin_time,
+                            data=checkin_result
+                        )
+                    
+                    # 如果签到成功，直接返回
+                    if checkin_result.get('success', False):
+                        print(f"      签到成功")
+                        break
+                    
+                    # 需要重试的情况
+                    retries += 1
+                    if retries < retry_config['max_retries']:
+                        print(f"      第 {retries} 次重试，等待 {retry_config['delay']} 秒...")
+                        time.sleep(retry_config['delay'])
+                    else:
+                        print(f"      达到最大重试次数")
+                        
+                except Exception as e:
+                    retries += 1
+                    if retries < retry_config['max_retries']:
+                        print(f"      发生异常: {str(e)}，第 {retries} 次重试，等待 {retry_config['delay']} 秒...")
+                        time.sleep(retry_config['delay'])
+                    else:
+                        raise
             
             # 步骤3: 获取用量信息
             print(f"    * 正在获取用量信息...")
@@ -138,7 +193,7 @@ class CheckinService(ABC):
             return CheckinResult(
                 service_name=self.service_name,
                 account_id=account_id,
-                success=checkin_success,
+                success=checkin_result.get('success', False),
                 message=checkin_result.get('message', '签到完成'),
                 checkin_time=checkin_time,
                 data=result_data

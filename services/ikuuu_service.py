@@ -9,6 +9,13 @@ from .base_service import CheckinService
 class IkuuuService(CheckinService):
     """iKuuu 签到服务。"""
 
+    # 禁用重试
+    _retry_config = {
+        'enabled': True,  # 启用重试   
+        'max_retries': 3,  # 重试次数
+        'delay': 5  # 重试间隔，单位：秒
+    }
+
     def __init__(self):
         super().__init__()
         self.base_url = os.environ.get('IKUUU_BASE_URL', 'https://ikuuu.one').rstrip('/')
@@ -46,6 +53,20 @@ class IkuuuService(CheckinService):
             configs.append(config)
 
         return configs
+    
+    def _is_already_checked_in(self, result: Dict[str, Any]) -> bool:
+        """
+        判断是否已经签到过
+        iKuuu的签到重复判断：
+        - ret = 0 且 message 包含 "已经签到过了"
+        """
+        if not isinstance(result, dict):
+            return False
+            
+        ret = result.get('ret')
+        message = result.get('msg', '')
+        
+        return ret == 0 and "已经签到过了" in message
 
     def login(self, account_config: Dict[str, Any]) -> bool:
         """登录iKuuu账号"""
