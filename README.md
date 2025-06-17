@@ -128,6 +128,31 @@ class NewService(CheckinService):
 
 4. 在`main.py`中注册新服务
 
+### 重试机制说明
+
+服务类可以通过重写`_retry_config`类变量来自定义重试行为：
+
+```python
+class NewService(CheckinService):
+    # 重试配置
+    _retry_config = {
+        'enabled': True,     # 是否启用重试
+        'max_retries': 3,    # 最大重试次数
+        'delay': 5          # 重试间隔（秒）
+    }
+```
+
+重试机制的工作流程：
+1. 当签到失败时，系统会自动进行重试
+2. 每次重试前会等待指定的延迟时间
+3. 达到最大重试次数后仍未成功，则返回失败结果
+4. 如果检测到已经签到过（通过`_is_already_checked_in`方法），则不会进行重试
+
+注意事项：
+- 默认情况下重试机制是禁用的（`enabled=False`）
+- 建议根据服务的稳定性来配置重试参数
+- 重试间隔不宜设置过短，以免对服务器造成压力
+
 ### 签到结果格式
 
 `do_checkin`方法必须返回包含以下字段的字典：
