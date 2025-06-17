@@ -54,6 +54,9 @@ GR_COOKIE="koa:sess=xxxx; koa:sess.sig=xxx||koa:sess=xxxx; koa:sess.sig=xxx"
 # GLaDOS基础URL（可选，默认为https://glados.one）
 GLADOS_BASE_URL="https://glados.one"
 ```
+GLADOS的cookie获取办法：`登录glados`→`首页`→`会员签到`→`打开Chrome开发者工具`→`点击签到`→`在Chrom开发者工具中查询cookie`
+具体获取cookie的操作见下图
+
 
 ### iKuuu变量配置说明
 
