@@ -56,6 +56,7 @@ GLADOS_BASE_URL="https://glados.one"
 ```
 GLADOS的cookie获取办法：`登录glados`→`首页`→`会员签到`→`打开Chrome开发者工具`→`点击签到`→`在Chrom开发者工具中查询cookie`
 具体获取cookie的操作见下图
+![get_cookie](https://github.com/user-attachments/assets/68870bee-9542-4485-bfe5-f3de58aa5c0c)
 
 
 ### iKuuu变量配置说明
