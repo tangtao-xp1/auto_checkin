@@ -173,7 +173,7 @@ class CheckinService(ABC):
                         print(f"      达到最大重试次数，签到失败: {str(e)}")
                         checkin_result = {
                             'success': False,
-                            'message': f'签到失败: {str(e)}'
+                            'message': f'{str(e)}'
                         }
                         break
             
