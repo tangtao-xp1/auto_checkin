@@ -2,7 +2,7 @@ name: "Auto-Checkin(glados/ikuuu)"
 
 on:
   schedule:
-    - cron: "0 22 * * *"  # scheduled at 06:00 (UTC+8) everyday
+    - cron: "0 19 * * *"  # scheduled at 03:00 (UTC+8) everyday
   workflow_dispatch:
 
 env:
@@ -27,7 +27,7 @@ jobs:
 
       - name: Random sleep
         if: github.event_name == 'schedule'
-        run: sleep $(shuf -i 10-100 -n 1)
+        run: sleep $(shuf -i 10-50 -n 1)
 
       - name: Install dependencies
         run: |
