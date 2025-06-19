@@ -36,7 +36,7 @@
 | TG_BOT_TOKEN  |  否  |  telegram bot密钥，不新建则不会使用tg推送消息  |
 | TG_CHAT_ID  |  否  |  telegram chat id，不新建则不会使用tg推送消息  |
 
-3. 到`Actions`中创建一个workflow，运行一次，以后每天项目都会在北京时间6点自动运行
+3. 到`Actions`中创建一个workflow，运行一次，以后每天项目都会在UTC 19点（北京时间3点）自动运行
 4. 最后，可以到Actions的workflow日志中的Run sign部分查看签到情况，同时也可以推送到Sever酱/pushplus/telegram查看签到详情
 
 ### 推送说明
