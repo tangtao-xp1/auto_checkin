@@ -167,7 +167,7 @@ def set_env():
         # iKuuu 配置
         "EMAIL": "xxx@xxx.com||xxx@xxx.com||",
         "PASSWD": "12345||12345||",
-        "IKUUU_BASE_URL": "https://ikuuu.one",
+        "IKUUU_BASE_URL": "https://ikuuu.org",
 
         # 通用配置
         "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
