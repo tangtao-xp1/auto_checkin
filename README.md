@@ -29,7 +29,7 @@
 | GLADOS_BASE_URL  |  否  |  GLaDOS的网址，默认填https://glados.one  |
 | EMAIL  |  否  |  ikuuu的登录账号邮箱，支持多账号，用两个竖线隔开  |
 | PASSWD |  否  |  ikuuu的登录账号密码，支持多账号，用两个竖线隔开  |
-| IKUUU_BASE_URL  |  否  |  ikuuu的网址，默认填https://ikuuu.one  |
+| IKUUU_BASE_URL  |  否  |  ikuuu的网址，默认填https://ikuuu.org  |
 | USER_AGENT  |  否  |  请求时使用的user_agent标识字符串  |
 | SERVERCHAN_KEY  |  否  |  Server酱密钥，不新建则不会使用Server酱推送消息  |
 | PUSHPLUS_TOKEN  |  否  |  pushplus密钥，不新建则不会使用pushplus推送消息  |
@@ -68,8 +68,8 @@ EMAIL="user1@example.com||user2@example.com"
 # iKuuu密码（多个账号用||分隔，需与邮箱一一对应）
 PASSWD="password1||password2"
 
-# iKuuu基础URL（可选，默认为https://ikuuu.one）
-IKUUU_BASE_URL="https://ikuuu.one"
+# iKuuu基础URL（可选，默认为https://ikuuu.org）
+IKUUU_BASE_URL="https://ikuuu.org"
 ```
 
 ### 通用配置（可选）
