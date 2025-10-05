@@ -26,6 +26,15 @@ jobs:
         id: date
         run: echo "TODAY=$(date -d '+8 hour' +'%Y-%m-%d')" >> $GITHUB_ENV
 
+      - name: Set token existence
+        # secrets 上下文只能在表达式中使用，而不能直接在条件语句中使用，做一次转换
+        run: |
+          if [[ -n "${{ secrets.GH_ACCESS_TOKEN }}" ]]; then
+            echo "HAS_TOKEN=true" >> $GITHUB_ENV
+          else
+            echo "HAS_TOKEN=false" >> $GITHUB_ENV
+          fi
+
       - name: Random sleep
         if: github.event_name == 'schedule'
         run: sleep $(shuf -i 10-50 -n 1)
@@ -37,7 +46,7 @@ jobs:
 
       - name: Download previous checkin status
         uses: actions/download-artifact@v4
-        if: ${{ secrets.GH_ACCESS_TOKEN }} != ''
+        if: ${{ env.HAS_TOKEN == 'true' }}
         with:
           name: checkin-status-${{ env.TODAY }}
           path: .
@@ -59,12 +68,14 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }} # telgram推送，选填
           SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }} # serverchan推送，选填
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }} # pushplus推送，选填
+          # GitHub Access Token
+          GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
         run: |
           python3 ./main.py
 
       - name: Upload current checkin status
         uses: actions/upload-artifact@v4
-        if: ${{ secrets.GH_ACCESS_TOKEN }} != ''
+        if: ${{ env.HAS_TOKEN == 'true' }}
         with:
           name: checkin-status-${{ env.TODAY }}
           path: status.json
