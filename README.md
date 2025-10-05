@@ -5,6 +5,7 @@
 ## 🚀 功能特性
 
 - 🔄 **多平台支持**：支持GLaDOS、iKuuu等多个服务
+- 💡 **增量签到**：可选的智能模式，自动跳过当天已成功的任务，仅重试失败项
 - 📊 **详细日志**：完整的签到过程日志记录
 - 🛡️ **异常处理**：完善的错误处理和重试机制  
 - 📈 **用量统计**：自动获取账号剩余流量等信息
@@ -25,6 +26,7 @@
 
 | 参数   |  是否必需  | 内容  | 
 | ------------ |  ------------ |  ------------ |
+| GH_ACCESS_TOKEN | 否 | 用于开启增量签到模式的GitHub Token，详见下方说明 |
 | GR_COOKIE  |  否  |  GLaDOS的登录cookie，支持多账号，每个账号的cookie用两个竖线隔开  |
 | GLADOS_BASE_URL  |  否  |  GLaDOS的网址，默认填https://glados.one  |
 | EMAIL  |  否  |  ikuuu的登录账号邮箱，支持多账号，用两个竖线隔开  |
@@ -38,6 +40,41 @@
 
 3. 到`Actions`中创建一个workflow，运行一次，以后每天项目都会在UTC 7点和19点（北京时间15点和次日3点）自动运行
 4. 最后，可以到Actions的workflow日志中的Run sign部分查看签到情况，同时也可以推送到Sever酱/pushplus/telegram查看签到详情
+
+### ✨ 增量签到模式 (可选)
+
+为了优化多次运行的效率，项目引入了增量签到模式。启用后，脚本会记录当天已成功签到的账号，并在后续的运行中自动跳过这些账号，只重试失败或未执行的。这对于一天内多次运行的场景（例如，一次失败后自动重试）非常有用。
+
+**工作原理**:
+- 脚本通过 GitHub API 读写一个名为 `checkin-status-YYYY-MM-DD` 的**工件 (Artifact)** 来持久化当日的成功记录。
+- 每次运行时，首先检查此工件，获取已成功列表。
+- 执行任务时，跳过列表中的账号，仅运行其余账号。
+- 运行结束后，将本次成功的账号也更新到工件中。
+- 最终的通知内容会合并当天所有运行的结果，提供一个完整的当日报告。
+
+**如何启用**:
+
+1. **生成 GitHub Token**:
+   - 前往 `GitHub` → `Settings` → `Developer settings` → `Personal access tokens` → `Tokens (classic)`。
+   - 点击 `Generate new token` → `Generate new token (classic)`。
+   - **Note** 填写 `auto_checkin`，**Expiration** 选择 `No expiration` 或你希望的有效期。
+   - **Select scopes** 勾选 `repo` 权限。
+   - 点击 `Generate token` 并**立即复制生成的 Token**。
+
+2. **添加到仓库 Secrets**:
+   - 回到你的项目仓库，进入 `Settings` → `Secrets and variables` → `Actions`。
+   - 在 `Repository secrets` 中点击 `New repository secret`。
+   - **Name** 填写 `GH_ACCESS_TOKEN`。
+   - **Secret** 粘贴上一步复制的 Token。
+
+**重要**: 请确保你的 GitHub Actions workflow 文件 (`.github/workflows/main.yml`) 在 `env` 部分正确传递了此 secret，如下所示：
+```yaml
+env:
+  GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+  # ... 其他 secrets
+```
+
+完成以上步骤后，增量签到模式将自动启用。如果想恢复原有的完整签到模式，只需删除 `GH_ACCESS_TOKEN` 这个 Secret 即可。
 
 ### 推送说明
 1. 该脚本可选择采用<a href='https://sct.ftqq.com/'>Server酱</a>或<a href = 'https://www.pushplus.plus/'>pushplus</a>或telegram的推送方式
@@ -84,6 +121,7 @@ USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 ```
 auto_checkin/
 ├── main.py                 # 主程序入口
+├── github_utils.py         # GitHub API工具，用于增量签到
 ├── notifications.py        # 通知实现方法
 ├── services/
 │   ├──base_service.py      # 抽象基类
