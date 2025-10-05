@@ -123,6 +123,7 @@ auto_checkin/
 ├── main.py                 # 主程序入口
 ├── github_utils.py         # GitHub API工具，用于增量签到
 ├── notifications.py        # 通知实现方法
+├── batch_del_workflows.py  # 单独可执行代码，用于删除批量删除action执行历史
 ├── services/
 │   ├──base_service.py      # 抽象基类
 │   ├── glados_service.py   # GLaDOS服务实现
@@ -204,6 +205,9 @@ class NewService(CheckinService):
 ```
 
 ## 📝 更新日志
+
+### v1.1.0
+- 新增“增量签到模式”，可以减少重复签到和重复发送消息的次数
 
 ### v1.0.0
 - 初始版本发布
