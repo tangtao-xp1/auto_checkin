@@ -1,12 +1,16 @@
 name: "Auto-Checkin(glados/ikuuu)"
 
 on:
-  schedule:
-    - cron: "0 7/12 * * *"  # scheduled at 03:00 (UTC+8) everyday
+  schedule:    
+    # 从 7:00 (UTC) 开始，每隔12小时运行一次
+    # 实际运行时间为 07:00 和 19:00 (UTC) / 15:00 和 03:00 (UTC+8) 
+    # - cron: "0 7/12 * * *"
+    - cron: "0 7,19 * * *"
   workflow_dispatch:
 
 env:
   RUN_ENV: 'prod'
+  WORKFLOW_FILE_NAME: 'main.yml' # 和action yml名字保持一致
 
 jobs:
   build:
@@ -14,17 +18,19 @@ jobs:
 
     steps:
       - name: Checkout master
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up python
         uses: actions/setup-python@v5
         with:
           # 设置运行脚本的 Python 版本，建议使用稳定版本
           python-version: '3.8'
+          # 增加缓存，加快速度
+          cache: 'pip'
 
-      - name: Set current date
+      - name: Set current date (UTC)
         id: date
-        run: echo "TODAY=$(date -d '+8 hour' +'%Y-%m-%d')" >> $GITHUB_ENV
+        run: echo "TODAY=$(date -u +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Set token existence
         # secrets 上下文只能在表达式中使用，而不能直接在条件语句中使用，做一次转换
@@ -44,12 +50,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Download previous checkin status
-        uses: actions/download-artifact@v4
+      - name: Download previous checkin status (if any from today)
         if: ${{ env.HAS_TOKEN == 'true' }}
-        with:
-          name: checkin-status-${{ env.TODAY }}
-          path: .
+        env:
+          GH_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+        run: |
+          echo "--- Download Info ---"
+          echo "Today (UTC): ${{ env.TODAY }}"
+          echo "Current Run ID: ${{ github.run_id }}"
+          echo "---------------------"
+          PREVIOUS_RUN_ID=$(gh run list --workflow="${{ env.WORKFLOW_FILE_NAME }}" --status=success --json databaseId,createdAt --limit=5 \
+            | jq --arg today "${{ env.TODAY }}" --argjson current_run_id "${{ github.run_id }}" \
+            '.[] | select(.createdAt | startswith($today)) | select(.databaseId != $current_run_id) | .databaseId' \
+            | head -n 1)
+
+          if [[ -z "$PREVIOUS_RUN_ID" ]]; then
+            echo "No successful run found for today. Proceeding normally."
+          else
+            echo "Found previous successful run from today: $PREVIOUS_RUN_ID. Attempting to download artifact."
+            gh run download "$PREVIOUS_RUN_ID" -n "checkin-status-${{ env.TODAY }}" -p . || echo "Artifact download failed or artifact does not exist. Continuing."
+          fi
         continue-on-error: true # 如果不存在，依然继续
 
       - name: Run Checkin
