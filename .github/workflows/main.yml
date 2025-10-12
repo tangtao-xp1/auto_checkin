@@ -69,8 +69,22 @@ jobs:
           else
             echo "Found previous successful run from today: $PREVIOUS_RUN_ID. Attempting to download artifact."
             gh run download "$PREVIOUS_RUN_ID" -n "checkin-status-${{ env.TODAY }}" -p . || echo "Artifact download failed or artifact does not exist. Continuing."
+
+            # 定义 artifact 解压后的文件路径
+            ARTIFACT_FILE_PATH="checkin-status-${{ env.TODAY }}/status.json"
+            
+            # 检查文件是否存在于子目录中，如果存在则移动到当前目录
+            if [[ -f "$ARTIFACT_FILE_PATH" ]]; then
+              echo "Artifact downloaded. Moving status.json to current directory."
+              mv "$ARTIFACT_FILE_PATH" .
+            else
+              echo "status.json not found within the downloaded artifact directory. Continuing."
+            fi
           fi
         continue-on-error: true # 如果不存在，依然继续
+      
+      - name: Debug file structure after download
+        run: ls -R
 
       - name: Run Checkin
         env:
