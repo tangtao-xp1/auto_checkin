@@ -2,10 +2,8 @@ name: "Auto-Checkin(glados/ikuuu)"
 
 on:
   schedule:    
-    # 从 7:00 (UTC) 开始，每隔12小时运行一次
-    # 实际运行时间为 07:00 和 19:00 (UTC) / 15:00 和 03:00 (UTC+8) 
-    # - cron: "0 7/12 * * *"
-    - cron: "0 7,19 * * *"
+    # 实际运行时间为 17:10 和 23:10 (UTC) / 1:10 和 07:10 (UTC+8) 
+    - cron: "10 17,23 * * *"
   workflow_dispatch:
 
 env:
@@ -28,12 +26,12 @@ jobs:
           # 增加缓存，加快速度
           cache: 'pip'
 
-      - name: Set current date (UTC)
+      - name: Set current date (Beijing)
         id: date
-        run: echo "TODAY=$(date -u +'%Y-%m-%d')" >> $GITHUB_ENV
+        run: echo "BEIJING_TODAY=$(TZ='Asia/Shanghai' date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Set token existence
-        # secrets 上下文只能在表达式中使用，而不能直接在条件语句中使用，做一次转换
+        # secrets 上下文只能在表达式中使用，而不能直接在条件语句中使用，需要做一次转换
         run: |
           if [[ -n "${{ secrets.GH_ACCESS_TOKEN }}" ]]; then
             echo "HAS_TOKEN=true" >> $GITHUB_ENV
@@ -50,41 +48,52 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Download previous checkin status (if any from today)
+      - name: Download previous checkin status
         if: ${{ env.HAS_TOKEN == 'true' }}
         env:
+          # 这里把GH_TOKEN传入，主要是给gh使用
           GH_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
         run: |
-          echo "--- Download Info ---"
-          echo "Today (UTC): ${{ env.TODAY }}"
-          echo "Current Run ID: ${{ github.run_id }}"
-          echo "---------------------"
-          PREVIOUS_RUN_ID=$(gh run list --workflow="${{ env.WORKFLOW_FILE_NAME }}" --status=success --json databaseId,createdAt --limit=5 \
-            | jq --arg today "${{ env.TODAY }}" --argjson current_run_id "${{ github.run_id }}" \
-            '.[] | select(.createdAt | startswith($today)) | select(.databaseId != $current_run_id) | .databaseId' \
-            | head -n 1)
+          # 获取最近一次成功的、非本次运行的工作流信息
+          PREVIOUS_RUN_INFO=$(gh run list --workflow="${{ env.WORKFLOW_FILE_NAME }}" --status=success --json databaseId,createdAt --limit=5 \
+            | jq --argjson current_run_id "${{ github.run_id }}" \
+            '[.[] | select(.databaseId != $current_run_id)][0]')
+          
+          PREVIOUS_RUN_ID=$(echo "$PREVIOUS_RUN_INFO" | jq '.databaseId')
+          PREVIOUS_RUN_CREATED_AT=$(echo "$PREVIOUS_RUN_INFO" | jq -r '.createdAt')
 
-          if [[ -z "$PREVIOUS_RUN_ID" ]]; then
-            echo "No successful run found for today. Proceeding normally."
+          if [[ -z "$PREVIOUS_RUN_ID" || "$PREVIOUS_RUN_ID" == "null" ]]; then
+            echo "No previous successful run found. Proceeding normally."
           else
-            echo "Found previous successful run from today: $PREVIOUS_RUN_ID. Attempting to download artifact."
-            gh run download "$PREVIOUS_RUN_ID" -n "checkin-status-${{ env.TODAY }}" -p . || echo "Artifact download failed or artifact does not exist. Continuing."
+            LAST_RUN_BEIJING_DATE=$(TZ='Asia/Shanghai' date -d "$PREVIOUS_RUN_CREATED_AT" +'%Y-%m-%d')
+            echo "Found previous successful run: ID $PREVIOUS_RUN_ID at $PREVIOUS_RUN_CREATED_AT (UTC)"
+            echo "Previous run's date (Beijing Time): $LAST_RUN_BEIJING_DATE"
 
-            # 定义 artifact 解压后的文件路径
-            ARTIFACT_FILE_PATH="checkin-status-${{ env.TODAY }}/status.json"
-            
-            # 检查文件是否存在于子目录中，如果存在则移动到当前目录
-            if [[ -f "$ARTIFACT_FILE_PATH" ]]; then
-              echo "Artifact downloaded. Moving status.json to current directory."
-              mv "$ARTIFACT_FILE_PATH" .
+            if [[ "${{ env.BEIJING_TODAY }}" == "$LAST_RUN_BEIJING_DATE" ]]; then
+              echo "Previous run was on the same day (Beijing Time). Attempting to download artifact."
+              ARTIFACT_NAME="checkin-status-$LAST_RUN_BEIJING_DATE"
+              echo "Attempting to download artifact: $ARTIFACT_NAME"
+              
+              gh run download "$PREVIOUS_RUN_ID" -n "$ARTIFACT_NAME" -p . || echo "Artifact download failed or artifact does not exist. Continuing."
+
+              # 定义 artifact 解压后的文件路径
+              ARTIFACT_FILE_PATH="$ARTIFACT_NAME/status.json"
+              
+              # 检查文件是否存在于子目录中，如果存在则移动到当前目录
+              if [[ -f "$ARTIFACT_FILE_PATH" ]]; then
+                echo "Artifact downloaded. Moving status.json to current directory."
+                mv "$ARTIFACT_FILE_PATH" .
+              else
+                echo "status.json not found within the downloaded artifact directory. Continuing."
+              fi
             else
-              echo "status.json not found within the downloaded artifact directory. Continuing."
+              echo "Previous run was on a different day (Beijing Time). Proceeding with a fresh check-in."
             fi
           fi
         continue-on-error: true # 如果不存在，依然继续
       
-      - name: Debug file structure after download
-        run: ls -R
+      # - name: Debug file structure after download
+      #   run: ls -R
 
       - name: Run Checkin
         env:
@@ -102,8 +111,6 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }} # telgram推送，选填
           SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }} # serverchan推送，选填
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }} # pushplus推送，选填
-          # GitHub Access Token
-          GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
         run: |
           python3 ./main.py
 
@@ -111,6 +118,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ env.HAS_TOKEN == 'true' }}
         with:
-          name: checkin-status-${{ env.TODAY }}
+          name: checkin-status-${{ env.BEIJING_TODAY }}
           path: status.json
           retention-days: 1
