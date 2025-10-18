@@ -295,8 +295,7 @@ if __name__ == "__main__":
                     "service_name": result.service_name,
                     "success": result.success,
                     "message": result.message,
-                    "checkin_time": result.checkin_time,
-                    "data": result.data or {}
+                    "checkin_time": result.checkin_time
                 }
                 current_checkin_status[hashed_id] = status_record
 
