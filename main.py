@@ -7,6 +7,7 @@ from services.base_service import CheckinService, CheckinResult
 from services.glados_service import GLaDOSService
 from services.ikuuu_service import IkuuuService
 from notifications import send_notification
+from status_manager import read_prior_status, write_current_status
 
 
 def _hash_account_id(account_id: str) -> str:
@@ -190,22 +191,14 @@ if __name__ == "__main__":
     # set_env()
     print("自动签到程序启动\n")
 
-    # 增量签到逻辑：检查环境变量开关
-    is_incremental_enabled = bool(os.environ.get("GH_ACCESS_TOKEN"))
-    previously_successful_accounts = {}
-
-    if is_incremental_enabled:
-        print("=== 检测到 GH_ACCESS_TOKEN，启用增量签到模式 ===")
-        from github_utils import read_prior_status, write_current_status
-        previously_successful_accounts = read_prior_status()
-    else:
-        print("=== 未检测到 GH_ACCESS_TOKEN，运行完整签到 ===")
+    # 默认启用增量签到模式，尝试读取历史状态
+    previously_successful_accounts = read_prior_status()
 
     # 1. 加载所有启用的服务
     all_services = get_enabled_services()
 
     # 检查是否所有账号今日已签到成功
-    if is_incremental_enabled and all_services:
+    if previously_successful_accounts and all_services:
         all_configured_accounts_hashed = set()
         for service in all_services:
             try:
@@ -217,25 +210,25 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"获取服务 {service.service_name} 账号配置时出错: {e}")
 
-        if all_configured_accounts_hashed and all_configured_accounts_hashed.issubset(previously_successful_accounts.keys()):
+        # 获取先前已成功签到的账号哈希集合
+        successful_hashes = {
+            h for h, data in previously_successful_accounts.items() if data.get('success')
+        }
+
+        if all_configured_accounts_hashed and all_configured_accounts_hashed.issubset(successful_hashes):
             print("\n=== 所有已配置的账号今日均已成功签到，无需重复执行。 ===")
             print("程序退出，本次不发送通知。")
             exit()  # 提前退出，节约资源和通知
 
     if not all_services:
         print("没有任何服务被启用，程序退出。")
-        notification_title = "签到 0/0/0"
-        final_report = "没有任何服务被启用。请检查环境变量配置。"
+        exit()
 
     else:
         all_results: List[CheckinResult] = []
-        current_successful_accounts = previously_successful_accounts.copy()
 
         # 2. 执行所有服务的签到流程
         for service in all_services:
-            # 在服务级别检查是否可以跳过
-            # 注意：这里的实现是基于账号级别的跳过，服务级别的跳过需要更复杂的逻辑
-            # 因此我们直接进入账号处理
             try:
                 # 获取服务的账号配置
                 account_configs = service.get_account_configs()
@@ -247,17 +240,19 @@ if __name__ == "__main__":
                 for config in account_configs:
                     account_id = config.get('account_id', '未知账号')
                     hashed_id = _hash_account_id(account_id)
+
                     # 检查此账号是否在之前已成功
-                    if is_incremental_enabled and previously_successful_accounts.get(hashed_id) is True:
+                    previous_record = previously_successful_accounts.get(hashed_id)
+                    if previous_record and previous_record.get('success') is True:
                         print(f"账号 {account_id} 在当日已成功签到，本次将跳过。")
-                        # 创建一个模拟的成功结果
+                        # 从之前的记录创建模拟结果，以保留原始数据
                         mock_result = CheckinResult(
-                            service_name=service.service_name,
+                            service_name=previous_record.get('service_name', service.service_name),
                             account_id=account_id,
                             success=True,
-                            message="已跳过，当日已成功",
-                            checkin_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                            data={}
+                            message=previous_record.get('message'),  # 保留原始消息
+                            checkin_time=previous_record.get('checkin_time'),
+                            data={**previous_record.get('data', {}), 'skipped': True}  # 合并并添加跳过标志
                         )
                         service_results.append(mock_result)
                     else:
@@ -274,18 +269,28 @@ if __name__ == "__main__":
                     account_id="服务异常",
                     success=False,
                     message=f"服务执行异常: {str(e)}",
-                    checkin_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    checkin_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    data={}
                 )
                 all_results.append(error_result)
 
-        # 如果启用了增量模式，则更新状态文件
-        if is_incremental_enabled:
-            print("\n=== 更新当日签到成功状态 ===")
-            for result in all_results:
-                if result.success:
-                    hashed_id = _hash_account_id(result.account_id)
-                    current_successful_accounts[hashed_id] = True
-            write_current_status(current_successful_accounts)
+        # 更新当日签到状态 - 新逻辑
+        print("\n=== 更新当日签到状态 ===")
+        current_checkin_status = {}
+        for result in all_results:
+            # 确保 account_id 有效，避免为“服务异常”等情况生成哈希
+            if result.account_id != "服务异常":
+                hashed_id = _hash_account_id(result.account_id)
+                status_record = {
+                    "service_name": result.service_name,
+                    "success": result.success,
+                    "message": result.message,
+                    "checkin_time": result.checkin_time,
+                    "data": result.data or {}
+                }
+                current_checkin_status[hashed_id] = status_record
+
+        write_current_status(current_checkin_status)
 
         # 3. 格式化结果
         notification_title, final_report = format_results_for_serverchan(all_results)
