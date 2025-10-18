@@ -194,6 +194,16 @@ if __name__ == "__main__":
     # 默认启用增量签到模式，尝试读取历史状态
     previously_successful_accounts = read_prior_status()
 
+    # 检查 status.json 格式，如果不符合新格式则发出警告并清空
+    if previously_successful_accounts:
+        # 随机取一个值进行检查
+        first_value = next(iter(previously_successful_accounts.values()))
+        if not isinstance(first_value, dict):
+            print("\n警告：检测到旧版 status.json 文件格式。")
+            print("本次将执行所有签到任务，并在结束后自动生成新版格式文件。")
+            print("如下次运行仍看到此警告，请手动删除 status.json 文件。\n")
+            previously_successful_accounts = {}
+
     # 1. 加载所有启用的服务
     all_services = get_enabled_services()
 
