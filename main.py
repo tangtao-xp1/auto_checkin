@@ -268,7 +268,6 @@ if __name__ == "__main__":
                     else:
                         # 正常执行签到
                         result = service.process_single_account(config)
-                        result.data['skipped'] = False
                         service_results.append(result)
 
                 all_results.extend(service_results)
@@ -296,8 +295,7 @@ if __name__ == "__main__":
                     "service_name": result.service_name,
                     "success": result.success,
                     "message": result.message,
-                    "checkin_time": result.checkin_time,
-                    "data": result.data
+                    "checkin_time": result.checkin_time
                 }
                 current_checkin_status[hashed_id] = status_record
 
