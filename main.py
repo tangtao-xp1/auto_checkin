@@ -169,8 +169,8 @@ def set_env():
     # 设置测试用的环境变量（本地测试时使用）
     os.environ.update({
         # GLaDOS 配置
-        "GR_COOKIE": "koa:sess=xxx; koa:sess.sig=xxx||koa:sess=xxx; koa:sess.sig=xxx||",
-        "GLADOS_BASE_URL": "https://glados.one",
+        "GR_COOKIE": "koa:sess=xxx;koa:sess.sig=xxx||koa:sess=xxx;koa:sess.sig=xxx||",
+        "GLADOS_BASE_URL": "https://glados.cloud",
 
         # iKuuu 配置
         "EMAIL": "xxx@xxx.com||xxx@xxx.com||",
