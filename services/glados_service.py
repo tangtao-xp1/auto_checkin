@@ -17,7 +17,7 @@ class GLaDOSService(CheckinService):
 
     def __init__(self):
         super().__init__()
-        self.base_url = os.environ.get('GLADOS_BASE_URL', 'https://glados.one')
+        self.base_url = os.environ.get('GLADOS_BASE_URL', 'https://glados.cloud')
 
     @property
     def service_name(self) -> str:
@@ -91,7 +91,7 @@ class GLaDOSService(CheckinService):
             'POST', 
             checkin_url, 
             headers=headers, 
-            data=json.dumps({'token': 'glados.one'})
+            data=json.dumps({'token': 'glados.cloud'}) # 请求要上传固定参数
         )
         
         checkin_data = response.json()
