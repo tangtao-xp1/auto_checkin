@@ -28,7 +28,7 @@
 | ------------ |  ------------ |  ------------ |
 | GH_ACCESS_TOKEN | 是 | 用于开启“每日状态与增量执行”模式的GitHub Token，**强烈建议配置** |
 | GR_COOKIE  |  否  |  GLaDOS的登录cookie，支持多账号，每个账号的cookie用两个竖线隔开  |
-| GLADOS_BASE_URL  |  否  |  GLaDOS的网址，默认填https://glados.one  |
+| GLADOS_BASE_URL  |  否  |  GLaDOS的网址，默认填https://glados.cloud  |
 | EMAIL  |  否  |  ikuuu的登录账号邮箱，支持多账号，用两个竖线隔开  |
 | PASSWD |  否  |  ikuuu的登录账号密码，支持多账号，用两个竖线隔开  |
 | IKUUU_BASE_URL  |  否  |  ikuuu的网址，默认填https://ikuuu.org  |
@@ -82,10 +82,10 @@
 
 ```bash
 # GLaDOS Cookie（多个账号用||分隔）
-GR_COOKIE="koa:sess=xxxx; koa:sess.sig=xxx||koa:sess=xxxx; koa:sess.sig=xxx"
+GR_COOKIE="koa:sess=xxxx;koa:sess.sig=xxx||koa:sess=xxxx;koa:sess.sig=xxx"
 
-# GLaDOS基础URL（可选，默认为https://glados.one）
-GLADOS_BASE_URL="https://glados.one"
+# GLaDOS基础URL（可选，默认为https://glados.cloud）
+GLADOS_BASE_URL="https://glados.cloud"
 ```
 GLADOS的cookie获取办法：`登录glados`→`首页`→`会员签到`→`打开Chrome开发者工具`→`点击签到`→`在Chrom开发者工具中查询cookie`
 具体获取cookie的操作见下图
