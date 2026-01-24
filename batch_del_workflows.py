@@ -154,8 +154,21 @@ def main(args=None):
     gh_token = args.gh_token
     # 2. 如果未提供 Token，则进行交互式输入
     if not gh_token:
-        print("\n请输入您的 GitHub Personal Access Token：")
-        gh_token = getpass.getpass(prompt='Token: ')
+        # 检测是否在 PyCharm 中运行
+        is_pycharm = "PYCHARM_HOSTED" in os.environ
+
+        if is_pycharm:
+            print("\n[检测到 PyCharm] 请输入您的 GitHub Token (输入将明文显示):")
+            gh_token = input('Token: ').strip()
+        else:
+            print("\n请输入您的 GitHub Token (输入将自动隐藏):")
+            # 在标准的 CMD/终端中，getpass 可以正常工作
+            try:
+                gh_token = getpass.getpass(prompt='Token: ').strip()
+            except EOFError:
+                # 兜底方案：如果 getpass 报错，回退到 input
+                gh_token = input('Token: ').strip()
+
         if not gh_token:
             print("错误：未提供 Token。操作已取消。")
             sys.exit(1)
