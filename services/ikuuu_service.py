@@ -133,8 +133,18 @@ class IkuuuService(CheckinService):
             info_html = response.text
 
             # 解析剩余流量
-            traffic_match = re.search(r'<h4>剩余流量</h4>[\s\S]*?<span class="counter">(\d+(\.\d+)?)</span>', info_html)
-            remaining_traffic = traffic_match.group(1) if traffic_match else '未知'
+            # 1. 匹配“剩余流量”标题
+            # 2. 跨过中间的闭合和开启标签
+            # 3. 提取 class 为 counter 的 span 标签内的数字
+            traffic_pattern = r'<h4>剩余流量</h4>\s*</div>\s*<div class="card-body">\s*<span class="counter">([\d.]+)</span>'
+            traffic_match = re.search(traffic_pattern, info_html)
+        
+            if traffic_match:
+                remaining_traffic = traffic_match.group(1)
+            else:
+                # 如果上面的精准匹配失败，尝试更宽松的匹配方案
+                fallback_match = re.search(r'剩余流量[\s\S]*?class="counter">([\d.]+)', info_html)
+                remaining_traffic = fallback_match.group(1) if fallback_match else '未知'
 
             return {
                 'remaining_traffic': remaining_traffic,
