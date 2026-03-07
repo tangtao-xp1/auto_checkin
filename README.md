@@ -35,8 +35,8 @@
 | USER_AGENT  |  否  |  请求时使用的user_agent标识字符串  |
 | SERVERCHAN_KEY  |  否  |  Server酱密钥，不新建则不会使用Server酱推送消息  |
 | PUSHPLUS_TOKEN  |  否  |  pushplus密钥，不新建则不会使用pushplus推送消息  |
-| TG_BOT_TOKEN  |  否  |  telegram bot密钥，不新建则不会使用tg推送消息，由 @BotFather 生成  |
-| TG_CHAT_ID  |  否  |  telegram chat id，不新建则不会使用tg推送消息，tg用户ID，可通过 @userinfobot 查询  |
+| TG_BOT_TOKEN  |  否  |  telegram bot密钥，不新建则不会使用tg推送消息，由 @BotFather 生成，格式为**10位数字:一串字符**，全部填写进去  |
+| TG_CHAT_ID  |  否  |  telegram chat id，不新建则不会使用tg推送消息，tg用户ID，可通过 @userinfobot 查询，是一串数字  |
 
 3. 到`Actions`中创建一个workflow，运行一次。此后项目每天会在 **UTC 17:10 和 23:10**（即 **北京时间次日凌晨 1:10 和早上 7:10**）自动运行。这样的时间安排确保了两次执行都落在同一个北京日期内，以实现可靠的状态恢复。
 4. 最后，可以到Actions的workflow日志中的Run sign部分查看签到情况，同时也可以推送到Sever酱/pushplus/telegram查看签到详情。
