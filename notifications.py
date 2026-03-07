@@ -29,7 +29,13 @@ def _push_plus(token: str, title: str, content: str) -> bool:
         return False
 
 def _push_tg(bot_token: str, chat_id: str, content: str) -> bool:
-    """Telegram推送"""
+    """
+    Telegram推送
+    :param bot_token: Telegram Bot 的 Token（由 @BotFather 生成）
+    :param chat_id: 接收消息的tg userid（你的用户 ID，数字字符串，通过 @userinfobot 查询得到）
+    :param content: 要推送的内容
+    :return: 推送成功返回 True，失败返回 False
+    """
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     headers = {'Content-Type': 'application/json'}
     payload = {
