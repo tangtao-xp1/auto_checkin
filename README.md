@@ -8,35 +8,35 @@
 - 💡 **智能状态管理**：以北京时间为准，自动记录当天签到状态，跳过已成功任务，仅重试失败项，避免重复执行。
 - 📊 **详细日志与报告**：完整的签到过程日志记录，并将每日最终状态作为报告输出。
 - 🛡️ **异常处理**：完善的错误处理和重试机制。
-- 📈 **用量统计**：自动获取账号剩余流量等信息。
 - 🔧 **灵活配置**：支持多账号配置和自定义参数。
 - 📱 **易于扩展**：基于抽象基类的插件化架构。
 
 ## 📋 支持的服务
 
-| 服务 | 状态 | 认证方式 | 备注 |
-|------|------|----------|------|
-| GLaDOS | ✅ | Cookie | 支持多账号 |
-| iKuuu | ✅ | 邮箱+密码 | 支持多账号 |
+| 服务   | 状态 | 认证方式 | 备注                                                                                                                          |
+| ------ | ---- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| GLaDOS | ✅   | Cookie   | 支持多账号                                                                                                                    |
+| iKuuu  | ✅   | Cookie   | 支持多账号，从2026年4月4日起，ikuuu不再支持通过邮箱+密码的API方式登录签到，需使用浏览器Cookie方式。剩余流量信息暂不支持获取。 |
 
 ## 🚦 使用方法
- 
+
 1. 右上角Fork此仓库
 2. 然后到`Settings`→`Secrets and variables`→`Actions`→`Repository secrets`→`New repository secrets` 新建以下参数：
 
-| 参数   |  是否必需  | 内容  | 
-| ------------ |  ------------ |  ------------ |
-| GH_ACCESS_TOKEN | 是 | 用于开启“每日状态与增量执行”模式的GitHub Token，**强烈建议配置** |
-| GR_COOKIE  |  否  |  GLaDOS的登录cookie，支持多账号，每个账号的cookie用两个竖线隔开  |
-| GLADOS_BASE_URL  |  否  |  GLaDOS的网址，默认填https://glados.cloud  |
-| EMAIL  |  否  |  ikuuu的登录账号邮箱，支持多账号，用两个竖线隔开  |
-| PASSWD |  否  |  ikuuu的登录账号密码，支持多账号，用两个竖线隔开  |
-| IKUUU_BASE_URL  |  否  |  ikuuu的网址，默认填https://ikuuu.org  |
-| USER_AGENT  |  否  |  请求时使用的user_agent标识字符串  |
-| SERVERCHAN_KEY  |  否  |  Server酱密钥，不新建则不会使用Server酱推送消息  |
-| PUSHPLUS_TOKEN  |  否  |  pushplus密钥，不新建则不会使用pushplus推送消息  |
-| TG_BOT_TOKEN  |  否  |  telegram bot密钥，不新建则不会使用tg推送消息，由 @BotFather 生成，格式为**10位数字:一串字符**，全部填写进去  |
-| TG_CHAT_ID  |  否  |  telegram chat id，不新建则不会使用tg推送消息，tg用户ID，可通过 @userinfobot 查询，是一串数字  |
+| 参数            | 是否必需 | 内容                                                                                                        |
+| --------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| GH_ACCESS_TOKEN | 是       | 用于开启“每日状态与增量执行”模式的GitHub Token，**强烈建议配置**                                            |
+| GR_COOKIE       | 否       | GLaDOS的登录cookie，支持多账号，每个账号的cookie用两个竖线隔开                                              |
+| GLADOS_BASE_URL | 否       | GLaDOS的网址，默认填https://glados.cloud                                                                    |
+| IKUUU_COOKIE    | 否       | iKuuu的登录cookie，支持多账号，每个账号的cookie用两个竖线隔开                                               |
+| ~~EMAIL~~       | ~~否~~   | ~~废除，iKuuu的登录邮~~箱                                                                                   |
+| ~~PASSWORD~~    | ~~否~~   | ~~废除，iKuuu的登录密~~码                                                                                   |
+| IKUUU_BASE_URL  | 否       | iKuuu的网址，默认填https://ikuuu.one                                                                        |
+| USER_AGENT      | 否       | 请求时使用的user_agent标识字符串                                                                            |
+| SERVERCHAN_KEY  | 否       | Server酱密钥，不新建则不会使用Server酱推送消息                                                              |
+| PUSHPLUS_TOKEN  | 否       | pushplus密钥，不新建则不会使用pushplus推送消息                                                              |
+| TG_BOT_TOKEN    | 否       | telegram bot密钥，不新建则不会使用tg推送消息，由 @BotFather 生成，格式为**10位数字:一串字符**，全部填写进去 |
+| TG_CHAT_ID      | 否       | telegram chat id，不新建则不会使用tg推送消息，tg用户ID，可通过 @userinfobot 查询，是一串数字                |
 
 3. 到`Actions`中创建一个workflow，运行一次。此后项目每天会在 **UTC 17:10 和 23:10**（即 **北京时间次日凌晨 1:10 和早上 7:10**）自动运行。这样的时间安排确保了两次执行都落在同一个北京日期内，以实现可靠的状态恢复。
 4. 最后，可以到Actions的workflow日志中的Run sign部分查看签到情况，同时也可以推送到Sever酱/pushplus/telegram查看签到详情。
@@ -46,13 +46,14 @@
 为了优化效率并提供更清晰的报告，项目引入了基于北京日期的状态管理机制。启用后，脚本会通过 GitHub Actions 的 Artifact 功能，以天（UTC+8）为单位持久化签到状态。
 
 **工作原理**:
+
 - **时区校准**：所有签到逻辑均以 **北京时间 (UTC+8)** 为基准。
 - **状态持久化**：脚本通过读写一个名为 `status.json` 的文件来记录每个账号的签到状态（成功/失败、信息、时间等）。
 - **跨流程传递**：
-    1.  每次运行时，首先会尝试下载当天（北京时间）上一次运行产生的 `status.json` 文件。
-    2.  执行任务时，自动跳过 `status.json` 中已记录为成功的账号，仅运行失败或未执行的账号。
-    3.  运行结束后，将本次运行与历史状态合并，生成一份完整的当日签到报告 `status.json`。
-    4.  这份最新的 `status.json` 会被上传为以当天日期命名的工件 (Artifact)，供下一次运行使用。
+  1.  每次运行时，首先会尝试下载当天（北京时间）上一次运行产生的 `status.json` 文件。
+  2.  执行任务时，自动跳过 `status.json` 中已记录为成功的账号，仅运行失败或未执行的账号。
+  3.  运行结束后，将本次运行与历史状态合并，生成一份完整的当日签到报告 `status.json`。
+  4.  这份最新的 `status.json` 会被上传为以当天日期命名的工件 (Artifact)，供下一次运行使用。
 - **最终报告**：最终的通知内容会合并当天所有运行的结果，提供一个完整的当日报告。如果所有已配置的账号在当天均已成功签到，程序将提前退出，不再发送通知。
 
 **如何启用**:
@@ -73,6 +74,7 @@
 完成以上步骤后，智能状态管理功能将自动启用。如果想恢复原有的完整签到模式，只需删除 `GH_ACCESS_TOKEN` 这个 Secret 即可。
 
 ### 推送说明
+
 1. 该脚本可选择采用<a href='https://sct.ftqq.com/'>Server酱</a>或<a href = 'https://www.pushplus.plus/'>pushplus</a>或telegram的推送方式
 2. 想使用哪一种推送方式就将密钥填入参数。例如要使用Server酱，只需要设置actions变量SERVERCHAN_KEY，并为该变量填入Server酱密钥即可
 3. 如若不想使用推送，删除对应的actions变量即可。例如在actions中删除或不设置变量SERVERCHAN_KEY，则不会使用Server酱推送
@@ -87,23 +89,24 @@ GR_COOKIE="koa:sess=xxxx;koa:sess.sig=xxx||koa:sess=xxxx;koa:sess.sig=xxx"
 # GLaDOS基础URL（可选，默认为https://glados.cloud）
 GLADOS_BASE_URL="https://glados.cloud"
 ```
+
 GLADOS的cookie获取办法：`登录glados`→`首页`→`会员签到`→`打开Chrome开发者工具`→`点击签到`→`在Chrom开发者工具中查询cookie`
 具体获取cookie的操作见下图
 ![get_cookie](https://github.com/user-attachments/assets/68870bee-9542-4485-bfe5-f3de58aa5c0c)
 
-
 ### iKuuu变量配置说明
 
 ```bash
-# iKuuu邮箱（多个账号用||分隔）
-EMAIL="user1@example.com||user2@example.com"
+# iKuuu Cookie（多个账号用||分隔）
+IKUUU_COOKIE="cookie_string_1||cookie_string_2"
 
-# iKuuu密码（多个账号用||分隔，需与邮箱一一对应）
-PASSWD="password1||password2"
-
-# iKuuu基础URL（可选，默认为https://ikuuu.org）
-IKUUU_BASE_URL="https://ikuuu.org"
+# iKuuu基础URL（可选，默认为https://ikuuu.one）
+IKUUU_BASE_URL="https://ikuuu.one"
 ```
+
+iKuuu的cookie获取办法：`登录ikuuu网站`→`打开Chrome开发者工具`→`控制台`→`输入 document.cookie`→`复制所有cookie值（默认会有引号，需要手动去掉）`
+
+> **注意**：iKuuu已不再支持通过邮箱+密码的API方式登录签到，需使用浏览器Cookie方式。用量信息由于网页加密，暂不支持获取。
 
 ### 通用配置（可选）
 
@@ -132,7 +135,7 @@ auto_checkin/
 
 - **代码结构优化**：优化当前 Python 文件的目录结构，使其更加清晰。
 - **服务实现增强**：优化现有签到服务的实现逻辑。
-- **新服务支持**：增加对 `serv00` 的延期签到支持。
+- **新服务支持**：增加playwright模式签到。增加支持newapi相关网站的签到，使用linuxdo的cookie。另外，`serv00`已经不需要延期签到。
 
 ## 🔧 开发指南
 
@@ -149,19 +152,19 @@ class NewService(CheckinService):
     @property
     def service_name(self) -> str:
         return "新服务名称"
-    
+
     def get_account_configs(self) -> List[Dict[str, Any]]:
         # 实现账号配置解析
         pass
-    
+
     def login(self, account_config: Dict[str, Any]) -> bool:
         # 实现登录逻辑
         pass
-    
+
     def do_checkin(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
         # 实现签到逻辑，必须返回包含success和message的字典
         pass
-    
+
     def get_usage_info(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
         # 实现用量信息获取
         pass
@@ -184,12 +187,14 @@ class NewService(CheckinService):
 ```
 
 重试机制的工作流程：
+
 1. 当签到失败时，系统会自动进行重试
 2. 每次重试前会等待指定的延迟时间
 3. 达到最大重试次数后仍未成功，则返回失败结果
 4. 如果检测到已经签到过（通过`_is_already_checked_in`方法），则不会进行重试
 
 注意事项：
+
 - 默认情况下重试机制是禁用的（`enabled=False`）
 - 建议根据服务的稳定性来配置重试参数
 - 重试间隔不宜设置过短，以免对服务器造成压力
@@ -208,7 +213,12 @@ class NewService(CheckinService):
 
 ## 📝 更新日志
 
+### v1.3.0
+
+- **修改ikuuu签到方式**：邮箱+密码的API方式已失效，改为cookie方式；同步更新相关文档。
+
 ### v1.2.0
+
 - **时区统一**：修复了时区问题，GitHub Action 触发时间虽为 UTC，但所有签到状态判断均以北京时间（UTC+8）为准。
 - **Action 时间优化**：调整 Action 触发时间为 UTC `17:10` 和 `23:10`，确保两次运行落在同一北京日，保证状态恢复的可靠性。
 - **核心逻辑重构**：
@@ -218,9 +228,11 @@ class NewService(CheckinService):
 - **代码结构调整**：重命名 `github_util.py` 为 `status_manager.py`，使其职责更清晰。
 
 ### v1.1.0
+
 - 新增“增量签到模式”，可以减少重复签到和重复发送消息的次数
 
 ### v1.0.0
+
 - 初始版本发布
 - 支持GLaDOS和iKuuu自动签到
 - 完善的错误处理和日志记录

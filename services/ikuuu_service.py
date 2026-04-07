@@ -1,15 +1,14 @@
 # services/ikuuu_service.py
 import os
-import re
 from typing import List, Dict, Any
 
 from .base_service import CheckinService
 
 
 class IkuuuService(CheckinService):
-    """iKuuu 签到服务。"""
+    """iKuuu 签到服务（基于Cookie认证）。"""
 
-    # 禁用重试
+    # 启用重试
     _retry_config = {
         'enabled': True,  # 启用重试   
         'max_retries': 2,  # 重试次数
@@ -25,30 +24,24 @@ class IkuuuService(CheckinService):
         return "iKuuu"
 
     def get_account_configs(self) -> List[Dict[str, Any]]:
-        """从环境变量解析iKuuu账号配置"""
-        emails_str = os.environ.get('EMAIL', '')
-        passwords_str = os.environ.get('PASSWD', '')
+        """从环境变量解析iKuuu账号配置（Cookie方式）"""
+        cookies_str = os.environ.get('IKUUU_COOKIE', '')
 
-        if not emails_str or not passwords_str:
-            raise ValueError("iKuuu 邮箱 (EMAIL) 或密码 (PASSWD) 未配置！")
+        if not cookies_str:
+            raise ValueError("iKuuu cookie (IKUUU_COOKIE) 未配置！")
 
-        emails = [email.strip() for email in emails_str.split('||') if email.strip()]
-        passwords = [pwd.strip() for pwd in passwords_str.split('||') if pwd.strip()]
-
-        if len(emails) != len(passwords):
-            raise ValueError(f"邮箱数量 ({len(emails)}) 与密码数量 ({len(passwords)}) 不匹配！")
-
-        if not emails:
-            raise ValueError("未找到有效的邮箱和密码配置！")
+        cookies = [cookie.strip() for cookie in cookies_str.split('||') if cookie.strip()]
+        if not cookies:
+            raise ValueError("iKuuu cookie 解析失败，请检查 IKUUU_COOKIE 格式！")
 
         configs = []
-        for email, password in zip(emails, passwords):
+        for cookie in cookies:
+            # 使用cookie前10个字符作为账号标识（脱敏）
+            account_id = cookie[:10] + '...'
             config = {
-                'email': email,
-                'password': password,
-                'account_id': email,  # 使用邮箱作为账号标识
-                'base_url': self.base_url,
-                'logged_in': False  # 登录状态标记
+                'cookie': cookie,
+                'account_id': account_id,
+                'base_url': self.base_url
             }
             configs.append(config)
 
@@ -66,49 +59,24 @@ class IkuuuService(CheckinService):
         success = result.get('success', False)
         message = result.get('message', '')
         
-        return success == 0 and "已经签到过了" in message
+        return success is False and "已经签到过了" in message
 
     def login(self, account_config: Dict[str, Any]) -> bool:
-        """登录iKuuu账号"""
-        login_url = f"{account_config['base_url']}/auth/login"
-        print(f"      login_url = {login_url}")
-
-        # 设置session headers
-        self.session.headers.update({
-            'origin': account_config['base_url'],
-            'referer': f"{account_config['base_url']}/auth/login"
-        })
-
-        data = {
-            'email': account_config['email'],
-            'passwd': account_config['password']
-        }
-
-        response = self.make_request('POST', login_url, data=data)
-        result = response.json()
-
-        ret = result.get('ret', -1)
-        login_msg = result.get('msg', '未知错误')
-
-        is_success = ret == 1
-
-        print(f"      ret = {ret}-{'成功' if is_success else '失败'}")
-        print(f"      msg = {login_msg}")
-
-        if is_success:
-            account_config['logged_in'] = True
-        
-        return is_success
+        """iKuuu基于cookie，无需登录步骤"""
+        return True
 
     def do_checkin(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
-        """执行iKuuu签到"""
-        if not account_config.get('logged_in'):
-            raise Exception("账号未登录，无法执行签到")
-
+        """执行iKuuu签到，通过POST请求带cookie完成"""
         checkin_url = f"{account_config['base_url']}/user/checkin"
         print(f"      checkin_url = {checkin_url}")
 
-        response = self.make_request('POST', checkin_url)
+        headers = {
+            'cookie': account_config['cookie'],
+            'referer': f"{account_config['base_url']}/user",
+            'origin': account_config['base_url']
+        }
+
+        response = self.make_request('POST', checkin_url, headers=headers)
         checkin_data = response.json()
         ret = checkin_data.get('ret', -1)
         message = checkin_data.get('msg', '签到失败')
@@ -121,35 +89,5 @@ class IkuuuService(CheckinService):
         }
 
     def get_usage_info(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
-        """获取iKuuu用量信息"""        
-        try:
-            if not account_config.get('logged_in'):
-                raise Exception("账号未登录，无法获取用量信息")
-
-            info_url = f"{account_config['base_url']}/user"
-            print(f"      info_url = {info_url}")
-
-            response = self.make_request('GET', info_url)
-            info_html = response.text
-
-            # 解析剩余流量
-            # 1. 匹配“剩余流量”标题
-            # 2. 跨过中间的闭合和开启标签
-            # 3. 提取 class 为 counter 的 span 标签内的数字
-            traffic_pattern = r'<h4>剩余流量</h4>\s*</div>\s*<div class="card-body">\s*<span class="counter">([\d.]+)</span>'
-            traffic_match = re.search(traffic_pattern, info_html)
-        
-            if traffic_match:
-                remaining_traffic = traffic_match.group(1)
-            else:
-                # 如果上面的精准匹配失败，尝试更宽松的匹配方案
-                fallback_match = re.search(r'剩余流量[\s\S]*?class="counter">([\d.]+)', info_html)
-                remaining_traffic = fallback_match.group(1) if fallback_match else '未知'
-
-            return {
-                'remaining_traffic': remaining_traffic,
-                'traffic_unit': 'GB'
-            }        
-        except Exception as e:
-            print(f"      获取用量信息异常: {str(e)}")
-            return None
+        """iKuuu用量信息已无法通过API获取，返回None"""
+        return None

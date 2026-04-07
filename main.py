@@ -34,16 +34,15 @@ def get_enabled_services() -> List[CheckinService]:
         print("未检测到 GR_COOKIE, 跳过 GLaDOS 服务。")
 
     # 检测 iKuuu 服务
-    ikuuu_email = os.environ.get("EMAIL")
-    ikuuu_passwd = os.environ.get("PASSWD")
-    if ikuuu_email and ikuuu_passwd:
-        print("检测到 EMAIL 和 PASSWD, 启用 iKuuu 服务。")
+    ikuuu_cookie = os.environ.get("IKUUU_COOKIE")
+    if ikuuu_cookie:
+        print("检测到 IKUUU_COOKIE, 启用 iKuuu 服务。")
         try:
             services.append(IkuuuService())
         except Exception as e:
             print(f"iKuuu 服务初始化失败: {e}")
     else:
-        print("未检测到 EMAIL 或 PASSWD, 跳过 iKuuu 服务。")
+        print("未检测到 IKUUU_COOKIE, 跳过 iKuuu 服务。")
 
     # 未来可在此处添加更多服务的检测...
     # if os.environ.get("NEW_SITE_CONFIG"):
@@ -92,9 +91,7 @@ def format_results_for_notification(all_results: List[CheckinResult]) -> str:
                         report_lines.append(f"   - 剩余天数: {left_days} 天")
 
                 elif service_name == "iKuuu":
-                    remaining_traffic = result.data.get('remaining_traffic', '')
-                    if remaining_traffic:
-                        report_lines.append(f"   - 剩余流量: {remaining_traffic} GB")
+                    pass  # iKuuu用量信息已无法获取
 
             report_lines.append(f"   - 时间: {result.checkin_time}")
             report_lines.append("")
@@ -141,8 +138,8 @@ def format_results_for_serverchan(all_results: List[CheckinResult]) -> Tuple[str
         if result.data:
             if result.service_name == "GLaDOS" and 'left_days' in result.data:
                 data = f"{result.data['left_days']}天\n"
-            elif result.service_name == "iKuuu" and 'remaining_traffic' in result.data:
-                data = f"{result.data['remaining_traffic']}G\n"
+            elif result.service_name == "iKuuu":
+                pass  # iKuuu用量信息已无法获取
 
         # 对齐格式化
         line = (f"\n{service_name.ljust(max_service_len)} "
@@ -173,9 +170,8 @@ def set_env():
         "GLADOS_BASE_URL": "https://glados.cloud",
 
         # iKuuu 配置
-        "EMAIL": "xxx@xxx.com||xxx@xxx.com||",
-        "PASSWD": "12345||12345||",
-        "IKUUU_BASE_URL": "https://ikuuu.org",
+        "IKUUU_COOKIE": "cookie1||cookie2||",
+        "IKUUU_BASE_URL": "https://ikuuu.one",
 
         # 通用配置
         "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",

@@ -103,8 +103,7 @@ jobs:
           GR_COOKIE: ${{ secrets.GR_COOKIE }}
           GLADOS_BASE_URL: ${{ secrets.GLADOS_BASE_URL }}
           # ikuuu配置，用||隔开
-          EMAIL: ${{ secrets.EMAIL }}
-          PASSWD: ${{ secrets.PASSWD }}
+          IKUUU_COOKIE: ${{ secrets.IKUUU_COOKIE }}
           IKUUU_BASE_URL: ${{ secrets.IKUUU_BASE_URL }}
           # 通知配置
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }} # telgram推送，选填
