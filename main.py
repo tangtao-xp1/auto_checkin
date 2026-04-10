@@ -12,7 +12,7 @@ from status_manager import read_prior_status, write_current_status
 
 def _hash_account_id(account_id: str) -> str:
     """使用 SHA-256 对 account_id 进行哈希处理，保护敏感信息"""
-    return hashlib.sha256(account_id.encode('utf-8')).hexdigest()
+    return hashlib.sha256(account_id.encode("utf-8")).hexdigest()
 
 
 def get_enabled_services() -> List[CheckinService]:
@@ -78,13 +78,15 @@ def format_results_for_notification(all_results: List[CheckinResult]) -> str:
 
         for result in results:
             status_icon = "✅" if result.success else "❌"
-            report_lines.append(f"{status_icon} **{result.account_id}** - {result.message}")
+            report_lines.append(
+                f"{status_icon} **{result.account_id}** - {result.message}"
+            )
 
             # 添加详细信息
             if result.success and result.data:
                 if service_name == "GLaDOS":
-                    email = result.data.get('email', '')
-                    left_days = result.data.get('left_days', '')
+                    email = result.data.get("email", "")
+                    left_days = result.data.get("left_days", "")
                     if email:
                         report_lines.append(f"   - 账号: {email}")
                     if left_days:
@@ -117,35 +119,53 @@ def format_results_for_serverchan(all_results: List[CheckinResult]) -> Tuple[str
         return "自动签到 0/0/0", "无签到任务"
 
     # 计算各列最大宽度
-    max_service_len = min(10, max(len(r.service_name) for r in all_results))  # 限制最大10字符
-    max_account_len = min(10, max(len(r.account_id) for r in all_results))  # 限制最大10字符
-    max_message_len = min(15, max(len(r.message) for r in all_results))  # 限制最大15字符
+    max_service_len = min(
+        10, max(len(r.service_name) for r in all_results)
+    )  # 限制最大10字符
+    max_account_len = min(
+        10, max(len(r.account_id) for r in all_results)
+    )  # 限制最大10字符
+    max_message_len = min(
+        15, max(len(r.message) for r in all_results)
+    )  # 限制最大15字符
 
     lines = []
     for result in all_results:
         # 处理账号显示
-        account = (result.account_id[:10] + "..") if len(result.account_id) > 10 else result.account_id
+        account = (
+            (result.account_id[:10] + "..")
+            if len(result.account_id) > 10
+            else result.account_id
+        )
         if result.service_name == "GLaDOS":
             account = result.account_id[:10]  # GLaDOS只显示前10字符
 
         # 处理service_name和message的长度限制
-        service_name = (result.service_name[:10] + "..") if len(result.service_name) > 10 else result.service_name
-        message = (result.message[:15] + "..") if len(result.message) > 15 else result.message
+        service_name = (
+            (result.service_name[:10] + "..")
+            if len(result.service_name) > 10
+            else result.service_name
+        )
+        message = (
+            (result.message[:15] + "..") if len(result.message) > 15 else result.message
+        )
 
         # 构建状态和数据部分 - 使用 ✓ 和 ✗ 符号
         status = "✓" if result.success else "✗"
         data = ""
         if result.data:
-            if result.service_name == "GLaDOS" and 'left_days' in result.data:
+            if result.service_name == "GLaDOS" and "left_days" in result.data:
                 data = f"{result.data['left_days']}天\n"
             elif result.service_name == "iKuuu":
                 pass  # iKuuu用量信息已无法获取
 
         # 对齐格式化
-        line = (f"\n{service_name.ljust(max_service_len)} "
-                f"{account.ljust(max_account_len)} "
-                f"{status} {data} "
-                f"{message.ljust(max_message_len)}")
+        line = (
+            f"\n{service_name.ljust(max_service_len)} "
+            f"{account.ljust(max_account_len)} "
+            f"{status} {data} "
+            f"{message.ljust(max_message_len)}"
+        )
         lines.append(line)
 
     # 统计信息
@@ -162,26 +182,27 @@ def format_results_for_serverchan(all_results: List[CheckinResult]) -> Tuple[str
 
     return title, detail_report
 
+
 def set_env():
     # 设置测试用的环境变量（本地测试时使用）
-    os.environ.update({
-        # GLaDOS 配置
-        "GR_COOKIE": "koa:sess=xxx;koa:sess.sig=xxx||koa:sess=xxx;koa:sess.sig=xxx||",
-        "GLADOS_BASE_URL": "https://glados.cloud",
+    os.environ.update(
+        {
+            # GLaDOS 配置
+            "GR_COOKIE": "koa:sess=xxx;koa:sess.sig=xxx||koa:sess=xxx;koa:sess.sig=xxx||",
+            "GLADOS_BASE_URL": "https://glados.cloud",
+            # iKuuu 配置
+            "IKUUU_COOKIE": "cookie1||cookie2||",
+            "IKUUU_BASE_URL": "https://ikuuu.org",
+            # 通用配置
+            "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            # 通知配置（测试时可以留空或使用测试token）
+            "SERVERCHAN_KEY": "",
+            "PUSHPLUS_TOKEN": "",
+            "TG_BOT_TOKEN": "",
+            "TG_CHAT_ID": "",
+        }
+    )
 
-        # iKuuu 配置
-        "IKUUU_COOKIE": "cookie1||cookie2||",
-        "IKUUU_BASE_URL": "https://ikuuu.one",
-
-        # 通用配置
-        "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-
-        # 通知配置（测试时可以留空或使用测试token）
-        "SERVERCHAN_KEY": "",
-        "PUSHPLUS_TOKEN": "",
-        "TG_BOT_TOKEN": "",
-        "TG_CHAT_ID": ""
-    })
 
 if __name__ == "__main__":
     # set_env()
@@ -211,17 +232,21 @@ if __name__ == "__main__":
                 account_configs = service.get_account_configs()
                 for config in account_configs:
                     # 确保我们得到一个有效的 account_id
-                    if account_id := config.get('account_id'):
+                    if account_id := config.get("account_id"):
                         all_configured_accounts_hashed.add(_hash_account_id(account_id))
             except Exception as e:
                 print(f"获取服务 {service.service_name} 账号配置时出错: {e}")
 
         # 获取先前已成功签到的账号哈希集合
         successful_hashes = {
-            h for h, data in previously_successful_accounts.items() if data.get('success')
+            h
+            for h, data in previously_successful_accounts.items()
+            if data.get("success")
         }
 
-        if all_configured_accounts_hashed and all_configured_accounts_hashed.issubset(successful_hashes):
+        if all_configured_accounts_hashed and all_configured_accounts_hashed.issubset(
+            successful_hashes
+        ):
             print("\n=== 所有已配置的账号今日均已成功签到，无需重复执行。 ===")
             print("程序退出，本次不发送通知。")
             exit()  # 提前退出，节约资源和通知
@@ -244,21 +269,26 @@ if __name__ == "__main__":
 
                 service_results = []
                 for config in account_configs:
-                    account_id = config.get('account_id', '未知账号')
+                    account_id = config.get("account_id", "未知账号")
                     hashed_id = _hash_account_id(account_id)
 
                     # 检查此账号是否在之前已成功
                     previous_record = previously_successful_accounts.get(hashed_id)
-                    if previous_record and previous_record.get('success') is True:
+                    if previous_record and previous_record.get("success") is True:
                         print(f"账号 {account_id} 在当日已成功签到，本次将跳过。")
                         # 从之前的记录创建模拟结果，以保留原始数据
                         mock_result = CheckinResult(
-                            service_name=previous_record.get('service_name', service.service_name),
+                            service_name=previous_record.get(
+                                "service_name", service.service_name
+                            ),
                             account_id=account_id,
                             success=True,
-                            message=previous_record.get('message'),  # 保留原始消息
-                            checkin_time=previous_record.get('checkin_time'),
-                            data={**previous_record.get('data', {}), 'skipped': True}  # 合并并添加跳过标志
+                            message=previous_record.get("message"),  # 保留原始消息
+                            checkin_time=previous_record.get("checkin_time"),
+                            data={
+                                **previous_record.get("data", {}),
+                                "skipped": True,
+                            },  # 合并并添加跳过标志
                         )
                         service_results.append(mock_result)
                     else:
@@ -275,8 +305,8 @@ if __name__ == "__main__":
                     account_id="服务异常",
                     success=False,
                     message=f"服务执行异常: {str(e)}",
-                    checkin_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    data={}
+                    checkin_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    data={},
                 )
                 all_results.append(error_result)
 
@@ -291,7 +321,7 @@ if __name__ == "__main__":
                     "service_name": result.service_name,
                     "success": result.success,
                     "message": result.message,
-                    "checkin_time": result.checkin_time
+                    "checkin_time": result.checkin_time,
                 }
                 current_checkin_status[hashed_id] = status_record
 
