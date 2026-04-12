@@ -188,11 +188,11 @@ def set_env():
     os.environ.update(
         {
             # GLaDOS 配置
-            "GR_COOKIE": "koa:sess=xxx;koa:sess.sig=xxx||koa:sess=xxx;koa:sess.sig=xxx||",
-            "GLADOS_BASE_URL": "https://glados.cloud",
+            # "GR_COOKIE": "koa:sess=xxx;koa:sess.sig=xxx||koa:sess=xxx;koa:sess.sig=xxx||",
+            # "GLADOS_BASE_URL": "https://glados.cloud",
             # iKuuu 配置
-            "IKUUU_COOKIE": "cookie1||cookie2||",
-            "IKUUU_BASE_URL": "https://ikuuu.org",
+            "IKUUU_COOKIE": "uid=...||uid=...",
+            "IKUUU_BASE_URL": "https://ikuuu.nl",
             # 通用配置
             "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             # 通知配置（测试时可以留空或使用测试token）
@@ -205,7 +205,7 @@ def set_env():
 
 
 if __name__ == "__main__":
-    # set_env()
+    set_env()
     print("自动签到程序启动\n")
 
     # 默认启用增量签到模式，尝试读取历史状态

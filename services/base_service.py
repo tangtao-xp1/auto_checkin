@@ -80,7 +80,14 @@ class CheckinService(ABC):
         
         # 发起请求
         response = self.session.request(method, url, **kwargs)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            # 增强异常信息，附带响应体摘要
+            body_preview = response.text[:200].replace("\n", " ").strip()
+            raise requests.exceptions.HTTPError(
+                f"{e} | 响应内容: {body_preview}", response=response
+            ) from e
         return response
 
     @property

@@ -17,9 +17,10 @@ class IkuuuService(CheckinService):
 
     def __init__(self):
         super().__init__()
-        self.base_url = os.environ.get("IKUUU_BASE_URL", "https://ikuuu.org").rstrip(
+        self.base_url = os.environ.get("IKUUU_BASE_URL", "https://ikuuu.nl").rstrip(
             "/"
         )
+        print(f"ikuuu baseurl = {self.base_url}")
 
     @property
     def service_name(self) -> str:
@@ -81,6 +82,32 @@ class IkuuuService(CheckinService):
         }
 
         response = self.make_request("POST", checkin_url, headers=headers)
+
+        # 诊断：检测重定向（cookie过期或域名变更时常见302跳转到登录页）
+        if response.history:
+            redirect_chain = " -> ".join(
+                f"{r.status_code}({r.url})" for r in response.history
+            )
+            print(f"      [诊断] 发生重定向: {redirect_chain} -> {response.url}")
+            print(f"      [诊断] 重定向通常意味着cookie已过期或域名已变更，请更新 IKUUU_COOKIE 和 IKUUU_BASE_URL")
+
+        # 诊断：检查响应内容类型
+        content_type = response.headers.get("Content-Type", "")
+        if "application/json" not in content_type:
+            body_preview = response.text[:300].replace("\n", " ").strip()
+            print(f"      [诊断] 响应状态码: {response.status_code}")
+            print(f"      [诊断] Content-Type: {content_type}")
+            print(f"      [诊断] 响应内容前300字符: {body_preview}")
+
+            # 尝试给出更明确的错误原因
+            if response.status_code == 200 and "<html" in response.text.lower():
+                raise ValueError(
+                    "服务端返回了HTML页面而非JSON，cookie可能已过期，请更新 IKUUU_COOKIE"
+                )
+            raise ValueError(
+                f"服务端返回非JSON响应(status={response.status_code}, type={content_type})，请检查 IKUUU_BASE_URL 和 IKUUU_COOKIE 配置"
+            )
+
         checkin_data = response.json()
         ret = checkin_data.get("ret", -1)
         message = checkin_data.get("msg", "签到失败")
