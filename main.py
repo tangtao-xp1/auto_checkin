@@ -192,7 +192,7 @@ def set_env():
             # "GLADOS_BASE_URL": "https://glados.cloud",
             # iKuuu 配置
             "IKUUU_COOKIE": "uid=...||uid=...",
-            "IKUUU_BASE_URL": "https://ikuuu.nl",
+            "IKUUU_BASE_URL": "https://ikuuu.org",
             # 通用配置
             "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             # 通知配置（测试时可以留空或使用测试token）
@@ -205,7 +205,12 @@ def set_env():
 
 
 if __name__ == "__main__":
-    set_env()
+    run_env = os.environ.get("RUN_ENV", "").strip().lower()
+    if run_env != "prod":
+        print("检测到非Github Action环境，执行 set_env() 加载本地测试环境变量。\n")
+        set_env()        
+    else:
+        print("检测到Github Action环境，跳过本地测试环境变量注入。\n")
     print("自动签到程序启动\n")
 
     # 默认启用增量签到模式，尝试读取历史状态

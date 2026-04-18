@@ -17,7 +17,7 @@ class IkuuuService(CheckinService):
 
     def __init__(self):
         super().__init__()
-        self.base_url = os.environ.get("IKUUU_BASE_URL", "https://ikuuu.nl").rstrip(
+        self.base_url = os.environ.get("IKUUU_BASE_URL", "https://ikuuu.org").rstrip(
             "/"
         )
         print(f"ikuuu baseurl = {self.base_url}")
