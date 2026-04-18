@@ -1,25 +1,23 @@
 # services/ikuuu_service.py
+import json
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from .base_service import CheckinService
 
 
 class IkuuuService(CheckinService):
-    """iKuuu 签到服务（基于Cookie认证）。"""
+    """iKuuu 签到服务（基于 Cookie 认证）。"""
 
-    # 启用重试
     _retry_config = {
-        "enabled": True,  # 启用重试
-        "max_retries": 2,  # 重试次数
-        "delay": 5,  # 重试间隔，单位：秒
+        "enabled": True,
+        "max_retries": 2,
+        "delay": 5,
     }
 
     def __init__(self):
         super().__init__()
-        self.base_url = os.environ.get("IKUUU_BASE_URL", "https://ikuuu.org").rstrip(
-            "/"
-        )
+        self.base_url = os.environ.get("IKUUU_BASE_URL", "https://ikuuu.org").rstrip("/")
         print(f"ikuuu baseurl = {self.base_url}")
 
     @property
@@ -27,51 +25,73 @@ class IkuuuService(CheckinService):
         return "iKuuu"
 
     def get_account_configs(self) -> List[Dict[str, Any]]:
-        """从环境变量解析iKuuu账号配置（Cookie方式）"""
+        """从环境变量解析 iKuuu 账号配置（Cookie 方式）。"""
         cookies_str = os.environ.get("IKUUU_COOKIE", "")
-
         if not cookies_str:
             raise ValueError("iKuuu cookie (IKUUU_COOKIE) 未配置！")
 
-        cookies = [
-            cookie.strip() for cookie in cookies_str.split("||") if cookie.strip()
-        ]
+        cookies = [cookie.strip() for cookie in cookies_str.split("||") if cookie.strip()]
         if not cookies:
             raise ValueError("iKuuu cookie 解析失败，请检查 IKUUU_COOKIE 格式！")
 
-        configs = []
+        configs: List[Dict[str, Any]] = []
         for cookie in cookies:
-            # 使用cookie前10个字符作为账号标识（脱敏）
             account_id = cookie[:10] + "..."
-            config = {
-                "cookie": cookie,
-                "account_id": account_id,
-                "base_url": self.base_url,
-            }
-            configs.append(config)
-
+            configs.append(
+                {
+                    "cookie": cookie,
+                    "account_id": account_id,
+                    "base_url": self.base_url,
+                }
+            )
         return configs
 
     def _is_already_checked_in(self, result: Dict[str, Any]) -> bool:
-        """
-        判断是否已经签到过
-        iKuuu的签到重复判断：
-        - ret = 0 且 message 包含 "已经签到过了"
-        """
+        """判断是否已经签到过。"""
         if not isinstance(result, dict):
             return False
 
-        success = result.get("success", False)
-        message = result.get("message", "")
+        message = str(result.get("message", ""))
+        if "\u5df2\u7ecf\u7b7e\u5230" in message or "\u5df2\u7b7e\u5230\u8fc7" in message:
+            return True
 
-        return success is False and "已经签到过了" in message
+        checkin_response = result.get("checkin_response")
+        if isinstance(checkin_response, dict):
+            response_msg = str(
+                checkin_response.get("msg") or checkin_response.get("message") or ""
+            )
+            return "\u5df2\u7ecf\u7b7e\u5230" in response_msg or "\u5df2\u7b7e\u5230\u8fc7" in response_msg
+
+        return False
 
     def login(self, account_config: Dict[str, Any]) -> bool:
-        """iKuuu基于cookie，无需登录步骤"""
+        """iKuuu 基于 cookie，无需登录步骤。"""
         return True
 
+    def _parse_checkin_json(self, response: Any, content_type: str) -> Dict[str, Any]:
+        """容错解析签到响应：优先按 JSON 解析正文，不只依赖 Content-Type。"""
+        try:
+            checkin_data = response.json()
+        except ValueError:
+            try:
+                checkin_data = json.loads(response.text)
+            except ValueError as exc:
+                if response.status_code == 200 and "<html" in response.text.lower():
+                    raise ValueError(
+                        "服务端返回HTML页面而非JSON，cookie可能已过期，请更新 IKUUU_COOKIE"
+                    ) from exc
+                raise ValueError(
+                    f"服务端返回无法解析的响应(status={response.status_code}, type={content_type})，"
+                    "请检查 IKUUU_BASE_URL 和 IKUUU_COOKIE 配置"
+                ) from exc
+
+        if not isinstance(checkin_data, dict):
+            raise ValueError("签到响应格式异常，预期为 JSON 对象")
+
+        return checkin_data
+
     def do_checkin(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
-        """执行iKuuu签到，通过POST请求带cookie完成"""
+        """执行 iKuuu 签到，通过 POST 请求并附带 Cookie。"""
         checkin_url = f"{account_config['base_url']}/user/checkin"
         print(f"      checkin_url = {checkin_url}")
 
@@ -83,15 +103,11 @@ class IkuuuService(CheckinService):
 
         response = self.make_request("POST", checkin_url, headers=headers)
 
-        # 诊断：检测重定向（cookie过期或域名变更时常见302跳转到登录页）
         if response.history:
-            redirect_chain = " -> ".join(
-                f"{r.status_code}({r.url})" for r in response.history
-            )
+            redirect_chain = " -> ".join(f"{r.status_code}({r.url})" for r in response.history)
             print(f"      [诊断] 发生重定向: {redirect_chain} -> {response.url}")
-            print(f"      [诊断] 重定向通常意味着cookie已过期或域名已变更，请更新 IKUUU_COOKIE 和 IKUUU_BASE_URL")
+            print("      [诊断] 重定向通常意味着 cookie 过期或域名变化，请检查 IKUUU_COOKIE 和 IKUUU_BASE_URL")
 
-        # 诊断：检查响应内容类型
         content_type = response.headers.get("Content-Type", "")
         if "application/json" not in content_type:
             body_preview = response.text[:300].replace("\n", " ").strip()
@@ -99,26 +115,32 @@ class IkuuuService(CheckinService):
             print(f"      [诊断] Content-Type: {content_type}")
             print(f"      [诊断] 响应内容前300字符: {body_preview}")
 
-            # 尝试给出更明确的错误原因
-            if response.status_code == 200 and "<html" in response.text.lower():
-                raise ValueError(
-                    "服务端返回了HTML页面而非JSON，cookie可能已过期，请更新 IKUUU_COOKIE"
-                )
-            raise ValueError(
-                f"服务端返回非JSON响应(status={response.status_code}, type={content_type})，请检查 IKUUU_BASE_URL 和 IKUUU_COOKIE 配置"
-            )
+        checkin_data = self._parse_checkin_json(response, content_type)
 
-        checkin_data = response.json()
-        ret = checkin_data.get("ret", -1)
-        message = checkin_data.get("msg", "签到失败")
-        print(f"      ret = {ret}{'-成功' if ret == 1 else '-失败'}")
+        raw_ret = checkin_data.get("ret", -1)
+        try:
+            ret = int(raw_ret)
+        except (TypeError, ValueError):
+            ret = -1
+
+        message = str(checkin_data.get("msg") or checkin_data.get("message") or "签到失败")
+        already_checked = "\u5df2\u7ecf\u7b7e\u5230" in message or "\u5df2\u7b7e\u5230\u8fc7" in message
+        success = (ret == 1) or already_checked
+
+        print(f"      ret = {ret}{'-成功' if success else '-失败'}")
         print(f"      msg = {message}")
+
+        if already_checked and ret != 1:
+            print("      [处理] 检测到已签到，按成功处理并停止重试")
+
         return {
-            "success": (ret == 1),
+            "success": success,
             "message": message,
             "checkin_response": checkin_data,
+            "already_checked_in": already_checked,
+            "ret": ret,
         }
 
     def get_usage_info(self, account_config: Dict[str, Any]) -> Dict[str, Any]:
-        """iKuuu用量信息已无法通过API获取，返回None"""
+        """iKuuu 用量信息暂无公开 API，返回 None。"""
         return None
