@@ -148,7 +148,8 @@ def main(args=None):
     # 1. 检查必备参数
     if not args.owner or not args.repo:
         print("错误：请提供仓库拥有者和仓库名称。")
-        print("用法示例：python delete_workflow_runs.py --owner <GitHub-Owner> --repo <GitHub-Repo>")
+        print("用法示例：python tools/batch_del_workflows.py --owner YOUR_OWNER --repo YOUR_REPO")
+        print("其中 YOUR_OWNER 和 YOUR_REPO 是需要替换的占位符。")
         sys.exit(1)
 
     gh_token = args.gh_token

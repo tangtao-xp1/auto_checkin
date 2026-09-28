@@ -1,4 +1,4 @@
-name: "Auto-Checkin(glados/ikuuu)"
+name: "Auto-Checkin(glados/ikuuu/workbuddy)"
 
 on:
   schedule:    
@@ -105,6 +105,8 @@ jobs:
           # ikuuu配置，用||隔开
           IKUUU_COOKIE: ${{ secrets.IKUUU_COOKIE }}
           IKUUU_BASE_URL: ${{ secrets.IKUUU_BASE_URL }}
+          # WorkBuddy 配置，由本机工具提取并写入单个 JSON Secret
+          WORKBUDDY_ACCOUNTS_JSON: ${{ secrets.WORKBUDDY_ACCOUNTS_JSON }}
           # 通知配置
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }} # telgram推送，选填
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }} # telgram推送，选填
