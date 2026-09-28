@@ -7,7 +7,6 @@ import os
 import sys
 import json
 import argparse
-import getpass
 import requests
 import time
 
@@ -152,23 +151,13 @@ def main(args=None):
         print("其中 YOUR_OWNER 和 YOUR_REPO 是需要替换的占位符。")
         sys.exit(1)
 
-    gh_token = args.gh_token
-    # 2. 如果未提供 Token，则进行交互式输入
+    gh_token = (args.gh_token or os.environ.get("GITHUB_TOKEN", "")).strip()
+    # 2. 如果参数和环境变量都未提供 Token，则使用普通输入。
+    # 不再依赖 PYCHARM_HOSTED：PyCharm 内置终端通过 uv run 启动时，
+    # 该环境变量通常不存在，无法可靠判断 IDE 环境。
     if not gh_token:
-        # 检测是否在 PyCharm 中运行
-        is_pycharm = "PYCHARM_HOSTED" in os.environ
-
-        if is_pycharm:
-            print("\n[检测到 PyCharm] 请输入您的 GitHub Token (输入将明文显示):")
-            gh_token = input('Token: ').strip()
-        else:
-            print("\n请输入您的 GitHub Token (输入将自动隐藏):")
-            # 在标准的 CMD/终端中，getpass 可以正常工作
-            try:
-                gh_token = getpass.getpass(prompt='Token: ').strip()
-            except EOFError:
-                # 兜底方案：如果 getpass 报错，回退到 input
-                gh_token = input('Token: ').strip()
+        print("\n请输入您的 GitHub Token（输入将明文显示，脚本不会保存）：")
+        gh_token = input("Token: ").strip()
 
         if not gh_token:
             print("错误：未提供 Token。操作已取消。")

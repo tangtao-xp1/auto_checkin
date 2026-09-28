@@ -254,7 +254,9 @@ auto_checkin/
 python .\tools\batch_del_workflows.py --owner YOUR_OWNER --repo YOUR_REPO --count 10
 ```
 
-其中 `YOUR_OWNER` 和 `YOUR_REPO` 是需要替换的占位符，不是原样输入的固定文本。脚本会先列出准备删除的运行记录，并要求输入 `yes` 确认。删除工作流历史不可恢复，请先使用较小的 `--count` 核对目标仓库和记录；除非已经人工核对，不要使用 `--force`。
+其中 `YOUR_OWNER` 和 `YOUR_REPO` 是需要替换的占位符，不是原样输入的固定文本。Token 的读取顺序是 `--gh_token` 参数、`GITHUB_TOKEN` 环境变量、普通交互输入；交互输入会在 PyCharm 等 IDE 终端中明文显示，但脚本不会保存。若不希望 Token 显示，建议仅在当前终端临时设置 `GITHUB_TOKEN`。
+
+脚本会先列出准备删除的运行记录，并要求输入 `yes` 确认。删除工作流历史不可恢复，请先使用较小的 `--count` 核对目标仓库和记录；除非已经人工核对，不要使用 `--force`。
 
 ## 🗺️ 未来计划
 
