@@ -88,7 +88,7 @@
 
 ```bash
 # GLaDOS Cookie（多个账号用||分隔）
-GR_COOKIE="koa:sess=xxxx;koa:sess.sig=xxx||koa:sess=xxxx;koa:sess.sig=xxx"
+GR_COOKIE="gld:sess=gld_xxxx; gld:sess.sig=xxx||gld:sess=gld_yyyy; gld:sess.sig=yyy"
 
 # GLaDOS基础URL（可选，默认为https://glados.cloud）
 GLADOS_BASE_URL="https://glados.cloud"
@@ -97,6 +97,8 @@ GLADOS_BASE_URL="https://glados.cloud"
 GLADOS的cookie获取办法：`登录glados`→`首页`→`会员签到`→`打开Chrome开发者工具`→`点击签到`→`在Chrom开发者工具中查询cookie`
 具体获取cookie的操作见下图
 ![get_cookie](https://github.com/user-attachments/assets/68870bee-9542-4485-bfe5-f3de58aa5c0c)
+
+同时兼容旧的 `koa:sess=...; koa:sess.sig=...` 格式，也可与新格式混合配置。请复制浏览器请求中的原始 Cookie，不要自行给下划线添加反斜杠。新格式按完整签名生成账号标识，避免多账号共用签到状态；旧格式保留原有标识。
 
 ### iKuuu变量配置说明
 
@@ -215,6 +217,36 @@ Remove-Item Env:\GITHUB_TOKEN
 3. 在 GitHub Actions 中手工触发一次工作流验证。
 
 WorkBuddy 使用的是客户端内部 HTTP 接口，而不是已承诺稳定的公开 API。客户端升级后如果出现“密钥标识不匹配”或接口响应变化，需要同步更新导出和签到实现。
+
+### 文本菜单更新三个服务的 Secret
+
+安装 `requirements-tools.txt` 后，在项目根目录运行（也可在 PyCharm 直接运行该文件）：
+
+```powershell
+python .\tools\update_secrets.py
+```
+
+菜单支持：
+
+| 选项 | 凭据来源 | 更新的仓库级 Actions Secret |
+| --- | --- | --- |
+| 1. WorkBuddy | 自动读取本机登录态 | `WORKBUDDY_ACCOUNTS_JSON` |
+| 2. iKuuu | 手工粘贴完整 Cookie | `IKUUU_COOKIE` |
+| 3. GLaDOS | 手工粘贴完整 Cookie，支持 gld/koa | `GR_COOKIE` |
+| 0. 退出 | — | — |
+
+选服务后，按提示输入凭据和 `OWNER/REPO`，检查 Secret 名称、账号数量，再输入 `y` 上传。Cookie 多账号用 `||` 分隔；每次会覆盖整个 Secret，请一次提供该服务全部需要保留的账号。工具不会从 GitHub 读取或合并旧 Secret。
+
+Token 优先读取 `GITHUB_TOKEN`，没有则使用普通输入，兼容 IDE 控制台。Cookie 和 Token 输入会在控制台显示，工具不写入文件；本次运行会复用仓库和 Token，退出后不保存。上传使用现有公钥加密流程。输入校验只检查结构，不代表 Cookie 未过期或签到一定成功。
+
+也可以预设仓库或 WorkBuddy 登录态目录：
+
+```powershell
+python .\tools\update_secrets.py --github-repo OWNER/REPO
+python .\tools\update_secrets.py --auth-dir "D:\path\to\auth"
+```
+
+原来的 `export_workbuddy_credentials.py` 命令及参数保持可用。
 
 ### 通用配置（可选）
 

@@ -1,6 +1,7 @@
 # services/glados_service.py
 import os
 import json
+import hashlib
 from typing import List, Dict, Any
 from .base_service import CheckinService
 
@@ -35,17 +36,23 @@ class GLaDOSService(CheckinService):
         
         configs = []
         for cookie in cookies:
-            # 查找koa:sess.sig=的位置
-            sig_prefix = "koa:sess.sig="
-            sig_index = cookie.find(sig_prefix)
-            
-            if sig_index != -1:
-                # 找到了koa:sess.sig=，提取后面的10个字符
-                start_pos = sig_index + len(sig_prefix)
-                account_id = cookie[start_pos:start_pos + 10] + '...'
+            fields = {}
+            for part in cookie.split(';'):
+                key, separator, value = part.strip().partition('=')
+                if separator:
+                    fields[key] = value.strip()
+            if fields.get('gld:sess.sig'):
+                # 使用完整签名生成标识，避免相同前缀的账号共用签到状态。
+                account_id = 'gld-' + hashlib.sha256(
+                    fields['gld:sess.sig'].encode('utf-8')
+                ).hexdigest()[:24]
+            elif fields.get('koa:sess.sig'):
+                # 保留旧格式的账号标识，兼容已有签到记录。
+                account_id = fields['koa:sess.sig'][:10] + '...'
             else:
-                # 如果没找到koa:sess.sig=，回退到原来的方法（前10个字符）
-                account_id = cookie[:10] + '...'
+                account_id = 'cookie-' + hashlib.sha256(
+                    cookie.encode('utf-8')
+                ).hexdigest()[:24]
     
             config = {
                 'cookie': cookie,
